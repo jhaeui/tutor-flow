@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const teacherOnlyPaths = [
   "/dashboard",
   "/monthly-settlement",
+  "/payments",
   "/settlement",
   "/students",
 ];
@@ -25,7 +26,7 @@ function getStudentIdFromPath(pathname: string) {
   return match?.[1] ?? null;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
