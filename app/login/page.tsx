@@ -1,23 +1,31 @@
-"use client";
+import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+type LoginPageProps = {
+  searchParams?: Promise<{
+    redirect?: string;
+    error?: string;
+  }>;
+};
 
-export default function LoginPage() {
-  const router = useRouter();
-  const supabase = createSupabaseBrowserClient();
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const redirectTo = resolvedSearchParams.redirect || "/";
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  async function login(formData: FormData) {
+    "use server";
 
-  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+    const email = String(formData.get("email") || "").trim();
+    const password = String(formData.get("password") || "");
+    const nextPath = String(formData.get("redirectTo") || "/");
 
-    setLoginError("");
-    setIsLoading(true);
+    if (!email || !password) {
+      redirect(
+        `/login?error=${encodeURIComponent("이메일과 비밀번호를 입력해줘")}&redirect=${encodeURIComponent(nextPath)}`,
+      );
+    }
+
+    const supabase = await createSupabaseServerClient();
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -25,96 +33,125 @@ export default function LoginPage() {
     });
 
     if (error || !data.user) {
-      setIsLoading(false);
-      setLoginError("이메일 또는 비밀번호를 다시 확인해줘.");
-      return;
+      redirect(
+        `/login?error=${encodeURIComponent("이메일 또는 비밀번호를 다시 확인해줘")}&redirect=${encodeURIComponent(nextPath)}`,
+      );
     }
 
     const { data: profile, error: profileError } = await supabase
       .from("app_users")
       .select("role, student_id")
       .eq("id", data.user.id)
-      .maybeSingle();
-
-    setIsLoading(false);
+      .single();
 
     if (profileError || !profile) {
-      setLoginError("로그인은 되었는데 권한 정보를 찾지 못했어. app_users 연결을 확인해야 해.");
-      return;
+      redirect(
+        `/login?error=${encodeURIComponent("계정 권한 정보가 없어. app_users 설정을 확인해줘")}&redirect=/`,
+      );
     }
 
-    if (profile.role === "student" && profile.student_id) {
-      router.replace(`/students/${profile.student_id}`);
-      router.refresh();
-      return;
+    if (profile.role === "student") {
+      redirect("/student");
     }
 
-    router.replace("/students");
-    router.refresh();
+    if (profile.role === "teacher") {
+      redirect("/");
+    }
+
+    redirect(
+      `/login?error=${encodeURIComponent("계정 역할(role)이 올바르지 않아")}&redirect=/`,
+    );
   }
 
   return (
-    <main className="min-h-screen bg-[#f8f1ea] px-4 py-10 text-[#4a372f]">
-      <div className="mx-auto flex min-h-[80vh] max-w-md items-center justify-center">
-        <section className="w-full rounded-[2rem] border border-[#eadfd5] bg-white/90 p-7 shadow-sm">
-          <div className="mb-7 text-center">
-            <p className="mb-2 text-sm font-bold text-[#b18b7f]">
-              과외관리 웹사이트
-            </p>
-            <h1 className="text-3xl font-black text-[#4a372f]">
-              로그인
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-[#8a6f64]">
-              선생님과 학생 계정으로 접속할 수 있어요.
-            </p>
-          </div>
+    <main className="min-h-screen bg-[#fff1f7] px-5 py-10 text-[#3f3437]">
+      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-5xl items-center justify-center">
+        <div className="grid w-full overflow-hidden rounded-[2rem] border border-[#f2cdda] bg-white shadow-sm md:grid-cols-[0.9fr_1.1fr]">
+          <section className="relative hidden bg-[#ffe4ef] p-8 md:block">
+            <div className="absolute left-8 top-8 rounded-full bg-white/70 px-4 py-2 text-xs font-black text-[#d93675]">
+              Tutor Flow
+            </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-[#6f564d]">
-                이메일
-              </span>
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-                autoComplete="email"
-                className="w-full rounded-2xl border border-[#eadfd5] bg-[#fffaf6] px-4 py-3 text-sm outline-none focus:border-[#d6a99a]"
-                placeholder="email@example.com"
-              />
-            </label>
+            <div className="flex h-full flex-col justify-end">
+              <div className="rounded-[2rem] border border-white/70 bg-white/70 p-6 backdrop-blur">
+                <p className="text-sm font-black text-[#d93675]">
+                  오늘의 작은 기록이
+                </p>
+                <h2 className="mt-2 text-3xl font-black leading-tight text-[#4a3c40]">
+                  다음 등급으로 가는
+                  <br />
+                  제일 확실한 길
+                </h2>
+                <p className="mt-4 text-sm font-semibold leading-6 text-[#8b767c]">
+                  수업기록, 시험범위, 수행평가, 공부계획을 한곳에서 확인해요.
+                </p>
+              </div>
+            </div>
+          </section>
 
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-[#6f564d]">
-                비밀번호
-              </span>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-                autoComplete="current-password"
-                className="w-full rounded-2xl border border-[#eadfd5] bg-[#fffaf6] px-4 py-3 text-sm outline-none focus:border-[#d6a99a]"
-                placeholder="비밀번호"
-              />
-            </label>
+          <section className="p-7 sm:p-10">
+            <div className="mb-8">
+              <p className="mb-2 text-sm font-black text-[#d93675]">
+                Welcome back
+              </p>
+              <h1 className="text-3xl font-black tracking-tight text-[#3f3437]">
+                1등급으로 가는 길
+              </h1>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[#8b767c]">
+                선생님 또는 학생 계정으로 로그인해주세요.
+              </p>
+            </div>
 
-            {loginError && (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">
-                {loginError}
+            {resolvedSearchParams.error && (
+              <div className="mb-5 rounded-2xl border border-[#f3b7c8] bg-[#fff0f6] px-4 py-3 text-sm font-bold text-[#d93675]">
+                {resolvedSearchParams.error}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full rounded-2xl bg-[#4a372f] px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-[#352720] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isLoading ? "로그인 중..." : "로그인"}
-            </button>
-          </form>
-        </section>
+            <form action={login} className="space-y-4">
+              <input type="hidden" name="redirectTo" value={redirectTo} />
+
+              <div>
+                <label className="mb-2 block text-sm font-black text-[#6f5a61]">
+                  이메일
+                </label>
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="email@example.com"
+                  className="w-full rounded-2xl border border-[#ead9de] bg-[#fffafb] px-4 py-3 text-sm font-bold outline-none transition focus:border-[#e86f9d] focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-black text-[#6f5a61]">
+                  비밀번호
+                </label>
+                <input
+                  name="password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  placeholder="비밀번호"
+                  className="w-full rounded-2xl border border-[#ead9de] bg-[#fffafb] px-4 py-3 text-sm font-bold outline-none transition focus:border-[#e86f9d] focus:bg-white"
+                />
+              </div>
+
+              <div className="rounded-2xl border border-[#ead9de] bg-[#fdf9fa] px-4 py-3 text-xs font-semibold leading-5 text-[#8b767c]">
+                브라우저 쿠키로 로그인 상태가 유지돼요. 공용 기기에서는 사용 후 로그아웃해주세요.
+              </div>
+
+              <button
+                type="submit"
+                className="w-full rounded-2xl bg-[#e86f9d] px-5 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#d93675]"
+              >
+                로그인
+              </button>
+            </form>
+          </section>
+        </div>
       </div>
     </main>
   );

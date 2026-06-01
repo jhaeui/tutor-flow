@@ -1600,15 +1600,18 @@ export default async function StudentDetailPage({
     redirect("/login");
   }
 
-  const isTeacher = profile.role === "teacher";
-  const isStudentSelf = profile.role === "student" && profile.student_id === id;
-
-  if (!isTeacher && !isStudentSelf) {
-    redirect(`/students/${profile.student_id}`);
+  if (profile.role === "student") {
+    redirect("/student");
   }
 
-  const canEditStudentAllowedParts = isTeacher || isStudentSelf;
-  const canEditTeacherOnly = isTeacher;
+  if (profile.role !== "teacher") {
+    redirect("/login");
+  }
+
+  const isTeacher = true;
+  const isStudentSelf = false;
+  const canEditStudentAllowedParts = true;
+  const canEditTeacherOnly = true;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const { year, month, prevMonthText, nextMonthText } = getMonthInfo(
     resolvedSearchParams?.month,
