@@ -153,7 +153,10 @@ function timeToMinutes(
 }
 
 function formatDurationLabel(start: string, end: string) {
-  const minutes = Math.max(timeToMinutes(end, { midnightAsEnd: true }) - timeToMinutes(start), 0);
+  const minutes = Math.max(
+    timeToMinutes(end, { midnightAsEnd: true }) - timeToMinutes(start),
+    0,
+  );
   if (!minutes) return "";
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
@@ -250,7 +253,6 @@ type LessonRecord = {
   is_extra?: boolean | null;
   created_at?: string;
 };
-  
 
 type MakeupLesson = {
   id: string;
@@ -410,8 +412,21 @@ type CalendarEvent = {
 };
 
 const SUBJECTS = ["국어", "영어", "수학", "사회", "과학", "한국사"];
-const GRADE_SUBJECT_AREAS = ["국어과", "영어과", "수학과", "사회과", "과학과", "기타과"];
-const CORE_GRADE_SUBJECT_AREAS = ["국어과", "영어과", "수학과", "사회과", "과학과"];
+const GRADE_SUBJECT_AREAS = [
+  "국어과",
+  "영어과",
+  "수학과",
+  "사회과",
+  "과학과",
+  "기타과",
+];
+const CORE_GRADE_SUBJECT_AREAS = [
+  "국어과",
+  "영어과",
+  "수학과",
+  "사회과",
+  "과학과",
+];
 const PERFORMANCE_SUBJECTS = [
   "선택안함",
   ...SUBJECTS,
@@ -436,7 +451,11 @@ const PERFORMANCE_STATUS_STYLES: Record<string, string> = {
   done: "border-[#cce6d6] bg-[#eef8f2] text-[#47735b]",
 };
 
-const STUDY_PLAN_SELECTABLE_STATUSES = ["not_started", "in_progress", "planned"];
+const STUDY_PLAN_SELECTABLE_STATUSES = [
+  "not_started",
+  "in_progress",
+  "planned",
+];
 
 const STUDY_PLAN_STATUS_LABELS: Record<string, string> = {
   not_started: "미완료",
@@ -500,9 +519,61 @@ function studyPlanStatusStyle(status?: string | null) {
 function getVisibleStatusEntries(
   statuses: Record<string, string>,
 ): [string, string][] {
-  return Object.entries(statuses).filter(([taskName]) =>
-    taskName && !taskName.startsWith("__"),
+  return Object.entries(statuses).filter(
+    ([taskName]) => taskName && !taskName.startsWith("__"),
   );
+}
+
+const EXAM_SCOPE_TASK_ORDER = [
+  "단어",
+  "어휘",
+  "본문",
+  "본문해석",
+  "해석",
+  "내용정리",
+  "문법",
+  "구문",
+  "영작",
+  "암기",
+  "문제",
+  "문제풀이",
+  "오답",
+  "복습",
+  "서술형",
+  "프린트",
+  "숙제",
+];
+
+function examScopeTaskOrderIndex(taskName: string) {
+  const exactIndex = EXAM_SCOPE_TASK_ORDER.indexOf(taskName);
+  if (exactIndex >= 0) return exactIndex;
+
+  const partialIndex = EXAM_SCOPE_TASK_ORDER.findIndex((keyword) =>
+    taskName.includes(keyword),
+  );
+
+  return partialIndex >= 0 ? partialIndex : 999;
+}
+
+function collectTaskNamesInExamScopeOrder(rows: ExamProgress[]) {
+  const firstSeenIndex = new Map<string, number>();
+  const names: string[] = [];
+
+  rows.forEach((row) => {
+    getVisibleStatusEntries(parseStatuses(row.statuses)).forEach(
+      ([taskName]) => {
+        if (firstSeenIndex.has(taskName)) return;
+        firstSeenIndex.set(taskName, names.length);
+        names.push(taskName);
+      },
+    );
+  });
+
+  return names.sort((a, b) => {
+    const orderDiff = examScopeTaskOrderIndex(a) - examScopeTaskOrderIndex(b);
+    if (orderDiff !== 0) return orderDiff;
+    return (firstSeenIndex.get(a) || 0) - (firstSeenIndex.get(b) || 0);
+  });
 }
 
 function makeStudyPlanTaskValue(
@@ -1061,7 +1132,7 @@ function calendarEventTitle(event: CalendarEvent) {
   if (type === "추가수업") return `${time}추가수업`;
   if (type === "중간고사") return `${time}중간고사`;
   if (type === "기말고사") return `${time}기말고사`;
-  if (type === "공부계획") return `${time}공부계획`;
+  if (type === "공부계획") return `${time}${event.title || "공부계획"}`.trim();
 
   if (type === "수행평가") {
     return event.subject && event.subject !== "선택안함"
@@ -1382,7 +1453,9 @@ function weightedAverageRankPercentile(rows: GradeTrendRecord[]) {
       value: rankPercentile(row),
       hours: Number(row.lesson_hours || 0),
     }))
-    .filter((row) => row.value !== null && Number(row.value) > 0 && row.hours > 0) as {
+    .filter(
+      (row) => row.value !== null && Number(row.value) > 0 && row.hours > 0,
+    ) as {
     value: number;
     hours: number;
   }[];
@@ -1445,7 +1518,9 @@ function gradeTrendArea(row: GradeTrendRecord) {
 
 function gradeTrendSubjectLabel(row: GradeTrendRecord) {
   const area = gradeTrendArea(row);
-  const name = row.subject_name || (GRADE_SUBJECT_AREAS.includes(row.subject) ? "" : row.subject);
+  const name =
+    row.subject_name ||
+    (GRADE_SUBJECT_AREAS.includes(row.subject) ? "" : row.subject);
   return name ? `${area} · ${name}` : area;
 }
 
@@ -1507,33 +1582,33 @@ export default async function StudentDetailPage({
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
 
-const {
-  data: { user },
-} = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-if (!user) {
-  redirect("/login");
-}
+  if (!user) {
+    redirect("/login");
+  }
 
-const { data: profile } = await supabase
-  .from("app_users")
-  .select("role, student_id")
-  .eq("id", user.id)
-  .single();
+  const { data: profile } = await supabase
+    .from("app_users")
+    .select("role, student_id")
+    .eq("id", user.id)
+    .single();
 
-if (!profile) {
-  redirect("/login");
-}
+  if (!profile) {
+    redirect("/login");
+  }
 
-const isTeacher = profile.role === "teacher";
-const isStudentSelf = profile.role === "student" && profile.student_id === id;
+  const isTeacher = profile.role === "teacher";
+  const isStudentSelf = profile.role === "student" && profile.student_id === id;
 
-if (!isTeacher && !isStudentSelf) {
-  redirect(`/students/${profile.student_id}`);
-}
+  if (!isTeacher && !isStudentSelf) {
+    redirect(`/students/${profile.student_id}`);
+  }
 
-const canEditStudentAllowedParts = isTeacher || isStudentSelf;
-const canEditTeacherOnly = isTeacher;
+  const canEditStudentAllowedParts = isTeacher || isStudentSelf;
+  const canEditTeacherOnly = isTeacher;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const { year, month, prevMonthText, nextMonthText } = getMonthInfo(
     resolvedSearchParams?.month,
@@ -1660,7 +1735,9 @@ const canEditTeacherOnly = isTeacher;
     new Set(gradeTrendRecords.map((row) => row.semester_label).filter(Boolean)),
   ).sort((a, b) => semesterSortValue(a).localeCompare(semesterSortValue(b)));
   const gradeTrendRowsBySemester = gradeTrendSemesters.map((semester) => {
-    const rows = gradeTrendRecords.filter((row) => row.semester_label === semester);
+    const rows = gradeTrendRecords.filter(
+      (row) => row.semester_label === semester,
+    );
     const coreRows = rows.filter((row) =>
       CORE_GRADE_SUBJECT_AREAS.includes(gradeTrendArea(row)),
     );
@@ -1865,11 +1942,7 @@ const canEditTeacherOnly = isTeacher;
   const studyPlanTaskNamesBySubject = Object.fromEntries(
     Object.entries(studyPlanPickerRowsBySubject).map(([subject, rows]) => [
       subject,
-      Array.from(
-        new Set(
-          rows.flatMap((row) => getVisibleStatusEntries(parseStatuses(row.statuses)).map(([taskName]) => taskName)),
-        ),
-      ),
+      collectTaskNamesInExamScopeOrder(rows),
     ]),
   ) as Record<string, string[]>;
 
@@ -2035,64 +2108,64 @@ const canEditTeacherOnly = isTeacher;
   const calendarRows = chunkCalendarRows(calendarDays);
   const todayText = getTodayText();
   async function assertCanEditStudentAllowedParts() {
-  "use server";
+    "use server";
 
-  const authSupabase = await createSupabaseServerClient();
+    const authSupabase = await createSupabaseServerClient();
 
-  const {
-    data: { user },
-  } = await authSupabase.auth.getUser();
+    const {
+      data: { user },
+    } = await authSupabase.auth.getUser();
 
-  if (!user) {
-    throw new Error("로그인이 필요해.");
+    if (!user) {
+      throw new Error("로그인이 필요해.");
+    }
+
+    const { data: viewer } = await authSupabase
+      .from("app_users")
+      .select("role, student_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!viewer) {
+      throw new Error("권한 정보를 찾을 수 없어.");
+    }
+
+    const allowed =
+      viewer.role === "teacher" ||
+      (viewer.role === "student" && viewer.student_id === id);
+
+    if (!allowed) {
+      throw new Error("수정 권한이 없어.");
+    }
+
+    return authSupabase;
   }
 
-  const { data: viewer } = await authSupabase
-    .from("app_users")
-    .select("role, student_id")
-    .eq("id", user.id)
-    .single();
+  async function assertTeacherOnly() {
+    "use server";
 
-  if (!viewer) {
-    throw new Error("권한 정보를 찾을 수 없어.");
+    const authSupabase = await createSupabaseServerClient();
+
+    const {
+      data: { user },
+    } = await authSupabase.auth.getUser();
+
+    if (!user) {
+      throw new Error("로그인이 필요해.");
+    }
+
+    const { data: viewer } = await authSupabase
+      .from("app_users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (viewer?.role !== "teacher") {
+      throw new Error("선생님만 수정할 수 있어.");
+    }
+
+    return authSupabase;
   }
-
-  const allowed =
-    viewer.role === "teacher" ||
-    (viewer.role === "student" && viewer.student_id === id);
-
-  if (!allowed) {
-    throw new Error("수정 권한이 없어.");
-  }
-
-  return authSupabase;
-}
-
-async function assertTeacherOnly() {
-  "use server";
-
-  const authSupabase = await createSupabaseServerClient();
-
-  const {
-    data: { user },
-  } = await authSupabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("로그인이 필요해.");
-  }
-
-  const { data: viewer } = await authSupabase
-    .from("app_users")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (viewer?.role !== "teacher") {
-    throw new Error("선생님만 수정할 수 있어.");
-  }
-
-  return authSupabase;
-}
 
   async function updateStudentInfo(formData: FormData) {
     "use server";
@@ -2418,7 +2491,6 @@ async function assertTeacherOnly() {
     "use server";
     const supabase = await assertTeacherOnly();
 
-
     const makeupId = String(formData.get("makeup_id") || "");
 
     if (!makeupId) return;
@@ -2636,7 +2708,6 @@ async function assertTeacherOnly() {
     "use server";
     const supabase = await assertTeacherOnly();
 
-
     const eventId = String(formData.get("event_id") || "");
 
     if (!eventId) return;
@@ -2658,7 +2729,6 @@ async function assertTeacherOnly() {
   async function updateCalendarEvent(formData: FormData) {
     "use server";
     const supabase = await assertTeacherOnly();
-
 
     const eventId = String(formData.get("event_id") || "").trim();
     const eventDate = String(formData.get("event_date") || "").trim();
@@ -2707,7 +2777,6 @@ async function assertTeacherOnly() {
   async function moveFixedLessonOccurrence(formData: FormData) {
     "use server";
     const supabase = await assertTeacherOnly();
-
 
     const lessonTimeId = String(formData.get("lesson_time_id") || "").trim();
     const originalDate = String(
@@ -2792,7 +2861,6 @@ async function assertTeacherOnly() {
     "use server";
     const supabase = await assertTeacherOnly();
 
-
     const eventId = String(formData.get("event_id") || "").trim();
     const newDate = String(formData.get("new_event_date") || "").trim();
     const newTime = String(formData.get("new_event_time") || "").trim();
@@ -2828,7 +2896,6 @@ async function assertTeacherOnly() {
   async function cancelFixedLessonOccurrence(formData: FormData) {
     "use server";
     const supabase = await assertTeacherOnly();
-
 
     const lessonTimeId = String(formData.get("lesson_time_id") || "").trim();
     const originalDate = String(
@@ -2934,7 +3001,6 @@ async function assertTeacherOnly() {
     "use server";
     const supabase = await assertTeacherOnly();
 
-
     const makeupId = String(formData.get("makeup_id") || "").trim();
     const makeupDate = String(formData.get("makeup_date") || "").trim();
     const makeupTime = String(formData.get("makeup_time") || "").trim();
@@ -2967,7 +3033,6 @@ async function assertTeacherOnly() {
     "use server";
     const supabase = await assertTeacherOnly();
 
-
     const recordId = String(formData.get("record_id") || "").trim();
     const lessonDate = String(formData.get("lesson_date") || "").trim();
     const startTime = String(formData.get("start_time") || "").trim();
@@ -2997,7 +3062,6 @@ async function assertTeacherOnly() {
   async function completeHomeworkTask(formData: FormData) {
     "use server";
     const supabase = await assertTeacherOnly();
-
 
     const recordId = String(formData.get("record_id") || "");
     const progressId = String(formData.get("progress_id") || "");
@@ -3115,7 +3179,6 @@ async function assertTeacherOnly() {
     "use server";
     const supabase = await assertTeacherOnly();
 
-
     const recordId = String(formData.get("record_id") || "");
     const progressId = String(formData.get("progress_id") || "");
     const taskName = String(formData.get("task_name") || "");
@@ -3192,7 +3255,6 @@ async function assertTeacherOnly() {
     "use server";
     const supabase = await assertTeacherOnly();
 
-
     const subject = String(formData.get("subject") || "").trim();
 
     const { data: examItems, error: examFetchError } = await supabase
@@ -3236,7 +3298,6 @@ async function assertTeacherOnly() {
   async function addCalendarEvent(formData: FormData) {
     "use server";
     const supabase = await assertTeacherOnly();
-
 
     const eventDate = String(formData.get("event_date") || "").trim();
     const eventTime = String(formData.get("event_time") || "").trim();
@@ -3476,11 +3537,9 @@ async function assertTeacherOnly() {
     redirect(`/students/${id}#grade-trend-section`);
   }
 
-
   async function deleteLessonRecord(formData: FormData) {
     "use server";
     const supabase = await assertTeacherOnly();
-
 
     const recordId = String(formData.get("record_id") || "");
 
@@ -3743,7 +3802,7 @@ async function assertTeacherOnly() {
                 href="/"
                 className="mb-2 inline-flex rounded-full border border-[#f0d6df] bg-white px-3 py-1.5 text-xs font-black text-[#b06b82] transition hover:-translate-y-0.5 hover:bg-[#fff1f5]"
               >
-              ← 대시보드로 돌아가기
+                ← 대시보드로 돌아가기
               </Link>
             )}
             <p className="text-sm font-black text-[#a87583]">학생 상세보기</p>
@@ -3786,15 +3845,6 @@ async function assertTeacherOnly() {
             >
               📝 수행평가 · 생기부 기록
             </Link>
-
-            {isTeacher && (
-              <Link
-                href={`/students/${id}/portfolio`}
-                className="rounded-full border border-[#f0c8d5] bg-[#fff7fa] px-4 py-3 text-sm font-black text-[#9f5264] transition hover:-translate-y-0.5"
-              >
-                🌱 생기부 기록
-              </Link>
-            )}
             <LogoutButton />
           </div>
         </div>
@@ -3894,239 +3944,238 @@ async function assertTeacherOnly() {
               </div>
             </div>
           </div>
-
           {isTeacher && (
-          <details className="mt-5 rounded-3xl border border-[#ead9de] bg-[#fdf9fa] p-5 md:mt-0 md:border-0 md:bg-transparent md:p-0">
-            <summary className="cursor-pointer list-none rounded-full border border-[#ead9de] bg-white px-3 py-1.5 text-xs font-black text-[#8f6270] shadow-sm md:absolute md:right-5 md:top-5">
-              기본정보 수정
-            </summary>
-
-            <form
-              action={updateStudentInfo}
-              className="mt-5 grid gap-4 md:grid-cols-2"
-            >
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
-                  이름
-                </label>
-                <input
-                  name="name"
-                  defaultValue={student.name || ""}
-                  className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
-                  나이
-                </label>
-                <input
-                  name="age"
-                  defaultValue={student.age || ""}
-                  placeholder="예: 16"
-                  className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
-                  학교
-                </label>
-                <input
-                  name="school"
-                  defaultValue={student.school || ""}
-                  className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
-                  진로
-                </label>
-                <input
-                  name="career"
-                  defaultValue={student.career || ""}
-                  placeholder="예: 마케팅 / 체육교육 / 간호보건"
-                  className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
-                  목표대학
-                </label>
-                <input
-                  name="target_university"
-                  defaultValue={student.target_university || ""}
-                  placeholder="예: 중앙대 / 성균관대"
-                  className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
-                  목표학과
-                </label>
-                <input
-                  name="target_major"
-                  defaultValue={student.target_major || ""}
-                  placeholder="예: 광고홍보학과 / 체육교육과"
-                  className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
-                  아바타 이미지 URL
-                </label>
-                <input
-                  name="avatar_url"
-                  defaultValue={student.avatar_url || ""}
-                  placeholder="이미지 주소를 붙여넣으면 왼쪽 아바타에 표시돼요"
-                  className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
-                  아바타 메모
-                </label>
-                <input
-                  name="avatar_memo"
-                  defaultValue={student.avatar_memo || ""}
-                  placeholder="예: 단발 / 리본 / 분홍 가디건"
-                  className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="md:col-span-2 rounded-2xl bg-[#4a3c40] px-5 py-3 text-sm font-black text-white"
-              >
-                기본정보 저장
-              </button>
-            </form>
-
-            <div className="mt-6 rounded-3xl border border-[#ead9de] bg-white p-4">
-              <h3 className="text-sm font-black text-[#3f3437]">
-                고정 수업시간
-              </h3>
-              <p className="mt-1 text-xs font-semibold text-[#8b767c]">
-                등록한 요일/시간은 아래 달력에 매주 반복으로 자동 표시돼요.
-              </p>
+            <details className="mt-5 rounded-3xl border border-[#ead9de] bg-[#fdf9fa] p-5 md:mt-0 md:border-0 md:bg-transparent md:p-0">
+              <summary className="cursor-pointer list-none rounded-full border border-[#ead9de] bg-white px-3 py-1.5 text-xs font-black text-[#8f6270] shadow-sm md:absolute md:right-5 md:top-5">
+                기본정보 수정
+              </summary>
 
               <form
-                action={addLessonTime}
-                className="mt-4 grid gap-3 md:grid-cols-5"
+                action={updateStudentInfo}
+                className="mt-5 grid gap-4 md:grid-cols-2"
               >
-                <select
-                  name="day_of_week"
-                  className="rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 py-3 outline-none"
-                >
-                  {DAYS.map((day) => (
-                    <option key={day} value={day}>
-                      {day}요일
-                    </option>
-                  ))}
-                </select>
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
+                    이름
+                  </label>
+                  <input
+                    name="name"
+                    defaultValue={student.name || ""}
+                    className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
+                  />
+                </div>
 
-                <input
-                  name="start_time"
-                  placeholder="시작 18:00"
-                  className="rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 py-3 outline-none"
-                />
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
+                    나이
+                  </label>
+                  <input
+                    name="age"
+                    defaultValue={student.age || ""}
+                    placeholder="예: 16"
+                    className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
+                  />
+                </div>
 
-                <input
-                  name="end_time"
-                  placeholder="종료 20:00"
-                  className="rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 py-3 outline-none"
-                />
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
+                    학교
+                  </label>
+                  <input
+                    name="school"
+                    defaultValue={student.school || ""}
+                    className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
+                  />
+                </div>
 
-                <input
-                  name="memo"
-                  placeholder="메모"
-                  className="rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 py-3 outline-none"
-                />
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
+                    진로
+                  </label>
+                  <input
+                    name="career"
+                    defaultValue={student.career || ""}
+                    placeholder="예: 마케팅 / 체육교육 / 간호보건"
+                    className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
+                    목표대학
+                  </label>
+                  <input
+                    name="target_university"
+                    defaultValue={student.target_university || ""}
+                    placeholder="예: 중앙대 / 성균관대"
+                    className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
+                    목표학과
+                  </label>
+                  <input
+                    name="target_major"
+                    defaultValue={student.target_major || ""}
+                    placeholder="예: 광고홍보학과 / 체육교육과"
+                    className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
+                    아바타 이미지 URL
+                  </label>
+                  <input
+                    name="avatar_url"
+                    defaultValue={student.avatar_url || ""}
+                    placeholder="이미지 주소를 붙여넣으면 왼쪽 아바타에 표시돼요"
+                    className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
+                    아바타 메모
+                  </label>
+                  <input
+                    name="avatar_memo"
+                    defaultValue={student.avatar_memo || ""}
+                    placeholder="예: 단발 / 리본 / 분홍 가디건"
+                    className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
+                  />
+                </div>
 
                 <button
                   type="submit"
-                  className="rounded-2xl bg-[#b98594] px-4 py-3 text-sm font-black text-white"
+                  className="md:col-span-2 rounded-2xl bg-[#4a3c40] px-5 py-3 text-sm font-black text-white"
                 >
-                  추가
+                  기본정보 저장
                 </button>
               </form>
 
-              <div className="mt-4 space-y-3">
-                {lessonTimes.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-[#ead9de] bg-[#fdf9fa] px-4 py-4 text-sm font-semibold text-[#9a838b]">
-                    등록된 고정 수업시간이 없어요.
-                  </div>
-                ) : (
-                  lessonTimes.map((lessonTime) => (
-                    <form
-                      key={lessonTime.id}
-                      action={updateLessonTime}
-                      className="grid gap-2 rounded-2xl border border-[#ead9de] bg-[#fdf9fa] p-3 md:grid-cols-6"
-                    >
-                      <input
-                        type="hidden"
-                        name="lesson_time_id"
-                        value={lessonTime.id}
-                      />
+              <div className="mt-6 rounded-3xl border border-[#ead9de] bg-white p-4">
+                <h3 className="text-sm font-black text-[#3f3437]">
+                  고정 수업시간
+                </h3>
+                <p className="mt-1 text-xs font-semibold text-[#8b767c]">
+                  등록한 요일/시간은 아래 달력에 매주 반복으로 자동 표시돼요.
+                </p>
 
-                      <select
-                        name="day_of_week"
-                        defaultValue={lessonTime.day_of_week}
-                        className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+                <form
+                  action={addLessonTime}
+                  className="mt-4 grid gap-3 md:grid-cols-5"
+                >
+                  <select
+                    name="day_of_week"
+                    className="rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 py-3 outline-none"
+                  >
+                    {DAYS.map((day) => (
+                      <option key={day} value={day}>
+                        {day}요일
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    name="start_time"
+                    placeholder="시작 18:00"
+                    className="rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 py-3 outline-none"
+                  />
+
+                  <input
+                    name="end_time"
+                    placeholder="종료 20:00"
+                    className="rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 py-3 outline-none"
+                  />
+
+                  <input
+                    name="memo"
+                    placeholder="메모"
+                    className="rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 py-3 outline-none"
+                  />
+
+                  <button
+                    type="submit"
+                    className="rounded-2xl bg-[#b98594] px-4 py-3 text-sm font-black text-white"
+                  >
+                    추가
+                  </button>
+                </form>
+
+                <div className="mt-4 space-y-3">
+                  {lessonTimes.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-[#ead9de] bg-[#fdf9fa] px-4 py-4 text-sm font-semibold text-[#9a838b]">
+                      등록된 고정 수업시간이 없어요.
+                    </div>
+                  ) : (
+                    lessonTimes.map((lessonTime) => (
+                      <form
+                        key={lessonTime.id}
+                        action={updateLessonTime}
+                        className="grid gap-2 rounded-2xl border border-[#ead9de] bg-[#fdf9fa] p-3 md:grid-cols-6"
                       >
-                        {DAYS.map((day) => (
-                          <option key={day} value={day}>
-                            {day}요일
-                          </option>
-                        ))}
-                      </select>
+                        <input
+                          type="hidden"
+                          name="lesson_time_id"
+                          value={lessonTime.id}
+                        />
 
-                      <input
-                        name="start_time"
-                        defaultValue={normalizeTime(lessonTime.start_time)}
-                        className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
-                      />
-
-                      <input
-                        name="end_time"
-                        defaultValue={normalizeTime(lessonTime.end_time)}
-                        className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
-                      />
-
-                      <input
-                        name="memo"
-                        defaultValue={lessonTime.memo || ""}
-                        className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-2"
-                      />
-
-                      <div className="flex gap-2">
-                        <button
-                          type="submit"
-                          className="rounded-xl bg-[#4a3c40] px-3 py-2 text-xs font-black text-white"
+                        <select
+                          name="day_of_week"
+                          defaultValue={lessonTime.day_of_week}
+                          className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
                         >
-                          수정
-                        </button>
+                          {DAYS.map((day) => (
+                            <option key={day} value={day}>
+                              {day}요일
+                            </option>
+                          ))}
+                        </select>
 
-                        <button
-                          formAction={deleteLessonTime}
-                          className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-xs font-black text-[#8f6270]"
-                        >
-                          삭제
-                        </button>
-                      </div>
-                    </form>
-                  ))
-                )}
+                        <input
+                          name="start_time"
+                          defaultValue={normalizeTime(lessonTime.start_time)}
+                          className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+                        />
+
+                        <input
+                          name="end_time"
+                          defaultValue={normalizeTime(lessonTime.end_time)}
+                          className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+                        />
+
+                        <input
+                          name="memo"
+                          defaultValue={lessonTime.memo || ""}
+                          className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-2"
+                        />
+
+                        <div className="flex gap-2">
+                          <button
+                            type="submit"
+                            className="rounded-xl bg-[#4a3c40] px-3 py-2 text-xs font-black text-white"
+                          >
+                            수정
+                          </button>
+
+                          <button
+                            formAction={deleteLessonTime}
+                            className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-xs font-black text-[#8f6270]"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      </form>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
-          </details>
-
-          )}        </section>
+            </details>
+          )}{" "}
+        </section>
 
         <section className="rounded-[2rem] border border-[#ead9de] bg-white p-5 shadow-sm">
           <input id="score-edit-mode" type="checkbox" className="peer hidden" />
@@ -4258,12 +4307,19 @@ async function assertTeacherOnly() {
 
           <div className="mt-4 space-y-4">
             <div className="rounded-3xl border border-[#ead9de] bg-[#fffafb] p-4">
-              <h3 className="text-sm font-black text-[#8f6270]">학기별 성적 입력</h3>
+              <h3 className="text-sm font-black text-[#8f6270]">
+                학기별 성적 입력
+              </h3>
               <p className="mt-1 text-xs font-semibold leading-5 text-[#8b767c]">
-                고등학교 내신은 과목 수 평균이 아니라 <b>시수/단위수 가중평균</b>으로 계산해요. 예: Σ(등급×시수) ÷ Σ시수.
+                고등학교 내신은 과목 수 평균이 아니라{" "}
+                <b>시수/단위수 가중평균</b>으로 계산해요. 예: Σ(등급×시수) ÷
+                Σ시수.
               </p>
 
-              <form action={addGradeTrendRecord} className="mt-4 grid gap-2 md:grid-cols-10">
+              <form
+                action={addGradeTrendRecord}
+                className="mt-4 grid gap-2 md:grid-cols-10"
+              >
                 <input
                   name="semester_label"
                   placeholder="예: 2026 1학기"
@@ -4275,7 +4331,9 @@ async function assertTeacherOnly() {
                   className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
                 >
                   {GRADE_SUBJECT_AREAS.map((area) => (
-                    <option key={area} value={area}>{area}</option>
+                    <option key={area} value={area}>
+                      {area}
+                    </option>
                   ))}
                 </select>
 
@@ -4338,7 +4396,10 @@ async function assertTeacherOnly() {
                   className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-8"
                 />
 
-                <button type="submit" className="rounded-xl bg-[#4a3c40] px-3 py-2 text-sm font-black text-white md:col-span-2">
+                <button
+                  type="submit"
+                  className="rounded-xl bg-[#4a3c40] px-3 py-2 text-sm font-black text-white md:col-span-2"
+                >
                   저장
                 </button>
               </form>
@@ -4353,7 +4414,9 @@ async function assertTeacherOnly() {
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="rounded-3xl border border-[#ead9de] bg-[#fffafb] p-4">
                     <h3 className="mb-3 flex items-center gap-2 text-sm font-black text-[#8f6270]">
-                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#fff1f5]">📈</span>
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#fff1f5]">
+                        📈
+                      </span>
                       국영수사과 내신 그래프
                     </h3>
                     <div className="space-y-3">
@@ -4361,14 +4424,34 @@ async function assertTeacherOnly() {
                         <div key={`core-grade-${semesterRow.semester}`}>
                           <div className="mb-1 flex items-center justify-between text-xs font-black text-[#6f5a61]">
                             <span>{semesterRow.semester}</span>
-                            <span>{semesterRow.coreAverage ? `${semesterRow.coreAverage}등급` : "-"}</span>
+                            <span>
+                              {semesterRow.coreAverage
+                                ? `${semesterRow.coreAverage}등급`
+                                : "-"}
+                            </span>
                           </div>
                           <div className="h-3 overflow-hidden rounded-full bg-white">
-                            <div className="h-full rounded-full bg-[#e86f9d]" style={{ width: `${gradeBarWidth(semesterRow.coreAverage)}%` }} />
+                            <div
+                              className="h-full rounded-full bg-[#e86f9d]"
+                              style={{
+                                width: `${gradeBarWidth(semesterRow.coreAverage)}%`,
+                              }}
+                            />
                           </div>
                           <div className="mt-1 flex justify-between text-[11px] font-bold text-[#9a838b]">
-                            <span>등수평균 {semesterRow.coreRankAverage ? `${semesterRow.coreRankAverage}등` : "-"}</span>
-                            <span>백분율 {semesterRow.coreRankPercentileAverage || semesterRow.corePercentileAverage ? `${semesterRow.coreRankPercentileAverage || semesterRow.corePercentileAverage}%` : "-"}</span>
+                            <span>
+                              등수평균{" "}
+                              {semesterRow.coreRankAverage
+                                ? `${semesterRow.coreRankAverage}등`
+                                : "-"}
+                            </span>
+                            <span>
+                              백분율{" "}
+                              {semesterRow.coreRankPercentileAverage ||
+                              semesterRow.corePercentileAverage
+                                ? `${semesterRow.coreRankPercentileAverage || semesterRow.corePercentileAverage}%`
+                                : "-"}
+                            </span>
                           </div>
                         </div>
                       ))}
@@ -4377,7 +4460,9 @@ async function assertTeacherOnly() {
 
                   <div className="rounded-3xl border border-[#ead9de] bg-[#fffafb] p-4">
                     <h3 className="mb-3 flex items-center gap-2 text-sm font-black text-[#8f6270]">
-                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#fff1f5]">📊</span>
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#fff1f5]">
+                        📊
+                      </span>
                       전과목 내신 그래프
                     </h3>
                     <div className="space-y-3">
@@ -4385,14 +4470,34 @@ async function assertTeacherOnly() {
                         <div key={`all-grade-${semesterRow.semester}`}>
                           <div className="mb-1 flex items-center justify-between text-xs font-black text-[#6f5a61]">
                             <span>{semesterRow.semester}</span>
-                            <span>{semesterRow.allAverage ? `${semesterRow.allAverage}등급` : "-"}</span>
+                            <span>
+                              {semesterRow.allAverage
+                                ? `${semesterRow.allAverage}등급`
+                                : "-"}
+                            </span>
                           </div>
                           <div className="h-3 overflow-hidden rounded-full bg-white">
-                            <div className="h-full rounded-full bg-[#b98594]" style={{ width: `${gradeBarWidth(semesterRow.allAverage)}%` }} />
+                            <div
+                              className="h-full rounded-full bg-[#b98594]"
+                              style={{
+                                width: `${gradeBarWidth(semesterRow.allAverage)}%`,
+                              }}
+                            />
                           </div>
                           <div className="mt-1 flex justify-between text-[11px] font-bold text-[#9a838b]">
-                            <span>등수평균 {semesterRow.allRankAverage ? `${semesterRow.allRankAverage}등` : "-"}</span>
-                            <span>백분율 {semesterRow.allRankPercentileAverage || semesterRow.allPercentileAverage ? `${semesterRow.allRankPercentileAverage || semesterRow.allPercentileAverage}%` : "-"}</span>
+                            <span>
+                              등수평균{" "}
+                              {semesterRow.allRankAverage
+                                ? `${semesterRow.allRankAverage}등`
+                                : "-"}
+                            </span>
+                            <span>
+                              백분율{" "}
+                              {semesterRow.allRankPercentileAverage ||
+                              semesterRow.allPercentileAverage
+                                ? `${semesterRow.allRankPercentileAverage || semesterRow.allPercentileAverage}%`
+                                : "-"}
+                            </span>
                           </div>
                         </div>
                       ))}
@@ -4402,24 +4507,53 @@ async function assertTeacherOnly() {
 
                 <div className="grid gap-3 md:grid-cols-3">
                   {gradeTrendRowsBySemester.map((semesterRow) => (
-                    <div key={semesterRow.semester} className="rounded-3xl border border-[#ead9de] bg-[#fdf9fa] p-4">
-                      <p className="text-sm font-black text-[#8f6270]">{semesterRow.semester}</p>
+                    <div
+                      key={semesterRow.semester}
+                      className="rounded-3xl border border-[#ead9de] bg-[#fdf9fa] p-4"
+                    >
+                      <p className="text-sm font-black text-[#8f6270]">
+                        {semesterRow.semester}
+                      </p>
                       <div className="mt-3 grid grid-cols-2 gap-2 text-center">
                         <div className="rounded-2xl bg-white px-2 py-3">
-                          <p className="text-[11px] font-black text-[#9a838b]">국영수사과</p>
-                          <p className="mt-1 text-lg font-black text-[#d93675]">{semesterRow.coreAverage ? `${semesterRow.coreAverage}등급` : "-"}</p>
+                          <p className="text-[11px] font-black text-[#9a838b]">
+                            국영수사과
+                          </p>
+                          <p className="mt-1 text-lg font-black text-[#d93675]">
+                            {semesterRow.coreAverage
+                              ? `${semesterRow.coreAverage}등급`
+                              : "-"}
+                          </p>
                         </div>
                         <div className="rounded-2xl bg-white px-2 py-3">
-                          <p className="text-[11px] font-black text-[#9a838b]">전과목</p>
-                          <p className="mt-1 text-lg font-black text-[#4a3c40]">{semesterRow.allAverage ? `${semesterRow.allAverage}등급` : "-"}</p>
+                          <p className="text-[11px] font-black text-[#9a838b]">
+                            전과목
+                          </p>
+                          <p className="mt-1 text-lg font-black text-[#4a3c40]">
+                            {semesterRow.allAverage
+                              ? `${semesterRow.allAverage}등급`
+                              : "-"}
+                          </p>
                         </div>
                         <div className="rounded-2xl bg-white px-2 py-3">
-                          <p className="text-[11px] font-black text-[#9a838b]">국영수사과 등수</p>
-                          <p className="mt-1 text-lg font-black text-[#8a6630]">{semesterRow.coreRankAverage ? `${semesterRow.coreRankAverage}등` : "-"}</p>
+                          <p className="text-[11px] font-black text-[#9a838b]">
+                            국영수사과 등수
+                          </p>
+                          <p className="mt-1 text-lg font-black text-[#8a6630]">
+                            {semesterRow.coreRankAverage
+                              ? `${semesterRow.coreRankAverage}등`
+                              : "-"}
+                          </p>
                         </div>
                         <div className="rounded-2xl bg-white px-2 py-3">
-                          <p className="text-[11px] font-black text-[#9a838b]">전과목 등수</p>
-                          <p className="mt-1 text-lg font-black text-[#8a6630]">{semesterRow.allRankAverage ? `${semesterRow.allRankAverage}등` : "-"}</p>
+                          <p className="text-[11px] font-black text-[#9a838b]">
+                            전과목 등수
+                          </p>
+                          <p className="mt-1 text-lg font-black text-[#8a6630]">
+                            {semesterRow.allRankAverage
+                              ? `${semesterRow.allRankAverage}등`
+                              : "-"}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -4430,32 +4564,79 @@ async function assertTeacherOnly() {
                   <table className="w-full min-w-[920px] border-separate border-spacing-0 bg-white text-sm">
                     <thead>
                       <tr className="bg-[#fdf4f6] text-[#6f5a61]">
-                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-left font-black">학기</th>
-                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-left font-black">교과</th>
-                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-left font-black">과목</th>
-                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-black">시수</th>
-                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-black">등급</th>
-                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-black">등수</th>
-                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-black">백분율</th>
-                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-left font-black">메모</th>
-                        <th className="border-b border-[#ead9de] px-4 py-3 text-center font-black">관리</th>
+                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-left font-black">
+                          학기
+                        </th>
+                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-left font-black">
+                          교과
+                        </th>
+                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-left font-black">
+                          과목
+                        </th>
+                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-black">
+                          시수
+                        </th>
+                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-black">
+                          등급
+                        </th>
+                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-black">
+                          등수
+                        </th>
+                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-black">
+                          백분율
+                        </th>
+                        <th className="border-b border-r border-[#ead9de] px-4 py-3 text-left font-black">
+                          메모
+                        </th>
+                        <th className="border-b border-[#ead9de] px-4 py-3 text-center font-black">
+                          관리
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {gradeTrendRecords.map((row) => (
                         <tr key={row.id} className="text-[#3f3437]">
-                          <td className="border-b border-r border-[#ead9de] px-4 py-3 font-bold">{row.semester_label}</td>
-                          <td className="border-b border-r border-[#ead9de] px-4 py-3 font-black">{gradeTrendArea(row)}</td>
-                          <td className="border-b border-r border-[#ead9de] px-4 py-3 font-black">{row.subject_name || row.subject}</td>
-                          <td className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-bold">{row.lesson_hours || "-"}</td>
-                          <td className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-black text-[#d93675]">{row.grade ? `${row.grade}등급` : "-"}</td>
-                          <td className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-bold">{row.rank ? `${row.rank}등` : "-"}{row.total_students ? ` / ${row.total_students}명` : ""}</td>
-                          <td className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-bold">{rankPercentile(row) ? `${rankPercentile(row)}%` : row.percentile ? `${row.percentile}%` : "-"}</td>
-                          <td className="border-b border-r border-[#ead9de] px-4 py-3 text-[#8b767c]">{row.memo || "-"}</td>
+                          <td className="border-b border-r border-[#ead9de] px-4 py-3 font-bold">
+                            {row.semester_label}
+                          </td>
+                          <td className="border-b border-r border-[#ead9de] px-4 py-3 font-black">
+                            {gradeTrendArea(row)}
+                          </td>
+                          <td className="border-b border-r border-[#ead9de] px-4 py-3 font-black">
+                            {row.subject_name || row.subject}
+                          </td>
+                          <td className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-bold">
+                            {row.lesson_hours || "-"}
+                          </td>
+                          <td className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-black text-[#d93675]">
+                            {row.grade ? `${row.grade}등급` : "-"}
+                          </td>
+                          <td className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-bold">
+                            {row.rank ? `${row.rank}등` : "-"}
+                            {row.total_students
+                              ? ` / ${row.total_students}명`
+                              : ""}
+                          </td>
+                          <td className="border-b border-r border-[#ead9de] px-4 py-3 text-center font-bold">
+                            {rankPercentile(row)
+                              ? `${rankPercentile(row)}%`
+                              : row.percentile
+                                ? `${row.percentile}%`
+                                : "-"}
+                          </td>
+                          <td className="border-b border-r border-[#ead9de] px-4 py-3 text-[#8b767c]">
+                            {row.memo || "-"}
+                          </td>
                           <td className="border-b border-[#ead9de] px-4 py-3 text-center">
                             <form action={deleteGradeTrendRecord}>
-                              <input type="hidden" name="grade_record_id" value={row.id} />
-                              <button className="rounded-full border border-[#ead9de] bg-white px-3 py-1 text-xs font-black text-[#8f6270]">삭제</button>
+                              <input
+                                type="hidden"
+                                name="grade_record_id"
+                                value={row.id}
+                              />
+                              <button className="rounded-full border border-[#ead9de] bg-white px-3 py-1 text-xs font-black text-[#8f6270]">
+                                삭제
+                              </button>
                             </form>
                           </td>
                         </tr>
@@ -4661,32 +4842,32 @@ async function assertTeacherOnly() {
 
                                         {isTeacher &&
                                           (type === "수업" ||
-                                          type === "추가수업" ||
-                                          type === "보강수업") && (
-                                          <div className="mb-3 flex flex-wrap gap-2 rounded-2xl border border-[#ead9de] bg-[#fffafb] p-3">
-                                            {event.link_url ? (
-                                              <Link
-                                                href={event.link_url}
-                                                className="rounded-xl bg-[#4a3c40] px-3 py-2 text-xs font-black text-white"
-                                              >
-                                                수업기록 연결
-                                              </Link>
-                                            ) : (
-                                              <Link
-                                                href={`/students/${id}/records/new?date=${event.event_date}&start=${normalizeTime(event.event_time)}&type=${encodeURIComponent(type)}&sourceType=${event.source_type || "calendar"}&sourceId=${event.source_id || ""}`}
-                                                className="rounded-xl bg-[#4a3c40] px-3 py-2 text-xs font-black text-white"
-                                              >
-                                                수업기록 추가
-                                              </Link>
-                                            )}
-                                            <span className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-[#8b767c]">
-                                              날짜 {event.event_date} · 시작{" "}
-                                              {normalizeTime(
-                                                event.event_time,
-                                              ) || "미입력"}
-                                            </span>
-                                          </div>
-                                        )}
+                                            type === "추가수업" ||
+                                            type === "보강수업") && (
+                                            <div className="mb-3 flex flex-wrap gap-2 rounded-2xl border border-[#ead9de] bg-[#fffafb] p-3">
+                                              {event.link_url ? (
+                                                <Link
+                                                  href={event.link_url}
+                                                  className="rounded-xl bg-[#4a3c40] px-3 py-2 text-xs font-black text-white"
+                                                >
+                                                  수업기록 연결
+                                                </Link>
+                                              ) : (
+                                                <Link
+                                                  href={`/students/${id}/records/new?date=${event.event_date}&start=${normalizeTime(event.event_time)}&type=${encodeURIComponent(type)}&sourceType=${event.source_type || "calendar"}&sourceId=${event.source_id || ""}`}
+                                                  className="rounded-xl bg-[#4a3c40] px-3 py-2 text-xs font-black text-white"
+                                                >
+                                                  수업기록 추가
+                                                </Link>
+                                              )}
+                                              <span className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-[#8b767c]">
+                                                날짜 {event.event_date} · 시작{" "}
+                                                {normalizeTime(
+                                                  event.event_time,
+                                                ) || "미입력"}
+                                              </span>
+                                            </div>
+                                          )}
 
                                         {isFixedLesson && event.source_id && (
                                           <div className="rounded-2xl bg-[#fff7fa] p-3">
@@ -5337,67 +5518,67 @@ async function assertTeacherOnly() {
           </div>
 
           {isTeacher && (
-          <details className="mt-5 rounded-3xl border border-[#ead9de] bg-[#fdf9fa] p-4">
-            <summary className="cursor-pointer text-sm font-black text-[#8f6270]">
-              일정 직접 추가
-            </summary>
+            <details className="mt-5 rounded-3xl border border-[#ead9de] bg-[#fdf9fa] p-4">
+              <summary className="cursor-pointer text-sm font-black text-[#8f6270]">
+                일정 직접 추가
+              </summary>
 
-            <form
-              action={addCalendarEvent}
-              className="mt-4 grid gap-2 md:grid-cols-6"
-            >
-              <input
-                type="date"
-                name="event_date"
-                className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
-              />
-              <input
-                name="event_time"
-                placeholder="시간"
-                className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
-              />
-              <select
-                name="event_type"
-                className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+              <form
+                action={addCalendarEvent}
+                className="mt-4 grid gap-2 md:grid-cols-6"
               >
-                <option value="시험">시험</option>
-                <option value="중간고사">중간고사</option>
-                <option value="기말고사">기말고사</option>
-                <option value="기타">기타</option>
-                <option value="수업">수업</option>
-                <option value="추가수업">추가수업</option>
-                <option value="보강수업">보강수업</option>
-                <option value="수행평가">수행평가</option>
-              </select>
-              <select
-                name="subject"
-                className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
-              >
-                <option value="">과목 없음</option>
-                {SUBJECTS.map((subject) => (
-                  <option key={subject} value={subject}>
-                    {subject}
-                  </option>
-                ))}
-              </select>
-              <input
-                name="title"
-                placeholder="일정 이름(추가수업은 비워도 됨)"
-                className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
-              />
-              <button
-                type="submit"
-                className="rounded-xl bg-[#b98594] px-3 py-2 text-sm font-black text-white"
-              >
-                추가
-              </button>
-              <input
-                name="memo"
-                placeholder="메모"
-                className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-6"
-              />
-            </form>
-          </details>
+                <input
+                  type="date"
+                  name="event_date"
+                  className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+                />
+                <input
+                  name="event_time"
+                  placeholder="시간"
+                  className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+                />
+                <select
+                  name="event_type"
+                  className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+                >
+                  <option value="시험">시험</option>
+                  <option value="중간고사">중간고사</option>
+                  <option value="기말고사">기말고사</option>
+                  <option value="기타">기타</option>
+                  <option value="수업">수업</option>
+                  <option value="추가수업">추가수업</option>
+                  <option value="보강수업">보강수업</option>
+                  <option value="수행평가">수행평가</option>
+                </select>
+                <select
+                  name="subject"
+                  className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+                >
+                  <option value="">과목 없음</option>
+                  {SUBJECTS.map((subject) => (
+                    <option key={subject} value={subject}>
+                      {subject}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  name="title"
+                  placeholder="일정 이름(추가수업은 비워도 됨)"
+                  className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+                />
+                <button
+                  type="submit"
+                  className="rounded-xl bg-[#b98594] px-3 py-2 text-sm font-black text-white"
+                >
+                  추가
+                </button>
+                <input
+                  name="memo"
+                  placeholder="메모"
+                  className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-6"
+                />
+              </form>
+            </details>
           )}
 
           <div className="mt-4 rounded-3xl border border-[#c9dff0] bg-[#f7fcff] p-4">
@@ -5405,8 +5586,8 @@ async function assertTeacherOnly() {
               <div>
                 <h3 className="text-sm font-black text-[#3f6f91]">공부 계획</h3>
                 <p className="mt-1 text-xs font-semibold text-[#8b767c]">
-                  시험범위 진도표를 과목별로 확인하고, 필요한 항목을 날짜/주차 기준
-                  계획으로 저장해요.
+                  시험범위 진도표를 과목별로 확인하고, 필요한 항목을 날짜/주차
+                  기준 계획으로 저장해요.
                 </p>
               </div>
 
@@ -5429,7 +5610,9 @@ async function assertTeacherOnly() {
                           시험범위표에서 선택하기
                         </h2>
                         <p className="mt-2 text-sm text-[#8b767c]">
-                          시험범위 진도표를 과목별로 그대로 불러와요. 미완료·진행중·예정 항목을 선택해 공부계획으로 저장할 수 있어요.
+                          시험범위 진도표를 과목별로 그대로 불러와요.
+                          미완료·진행중·예정 항목을 선택해 공부계획으로 저장할
+                          수 있어요.
                         </p>
                       </div>
                       <span className="rounded-2xl border border-[#e8d4da] bg-white px-4 py-2 text-sm font-black text-[#8f6270]">
@@ -5587,7 +5770,9 @@ async function assertTeacherOnly() {
                                                         value={makeStudyPlanTaskValue(
                                                           row.id,
                                                           row.subject,
-                                                          examProgressFullTitle(row),
+                                                          examProgressFullTitle(
+                                                            row,
+                                                          ),
                                                           taskName,
                                                         )}
                                                         className="peer sr-only"
@@ -6488,7 +6673,8 @@ async function assertTeacherOnly() {
               <div>
                 <h2 className="text-xl font-black">숙제 정리</h2>
                 <p className="mt-1 text-sm text-[#8b767c]">
-                  학생 화면에서는 숙제 내용만 보여주고, 완료/미루기 관리는 선생님만 해요.
+                  학생 화면에서는 숙제 내용만 보여주고, 완료/미루기 관리는
+                  선생님만 해요.
                 </p>
               </div>
 
@@ -6510,36 +6696,50 @@ async function assertTeacherOnly() {
               </div>
             ) : !isTeacher ? (
               <div className="grid gap-4">
-                {groupBySubjectAndUnit(homeworkTasks).map(({ subject, units }) => (
-                  <div key={subject} className="overflow-hidden rounded-3xl border border-[#ead9de] bg-[#fffafb]">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#f0dfe4] bg-[#fff1f5] px-4 py-3">
-                      <p className="min-w-0 text-sm font-black text-[#8f5262]">
-                        {subjectEmoji(subject)} {subject}
-                      </p>
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#9f6c7a]">
-                        {units.reduce((sum, unit) => sum + unit.rows.length, 0)}개
-                      </span>
-                    </div>
+                {groupBySubjectAndUnit(homeworkTasks).map(
+                  ({ subject, units }) => (
+                    <div
+                      key={subject}
+                      className="overflow-hidden rounded-3xl border border-[#ead9de] bg-[#fffafb]"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#f0dfe4] bg-[#fff1f5] px-4 py-3">
+                        <p className="min-w-0 text-sm font-black text-[#8f5262]">
+                          {subjectEmoji(subject)} {subject}
+                        </p>
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#9f6c7a]">
+                          {units.reduce(
+                            (sum, unit) => sum + unit.rows.length,
+                            0,
+                          )}
+                          개
+                        </span>
+                      </div>
 
-                    <div className="divide-y divide-[#f2e3e7] bg-white">
-                      {units.map((unit) => (
-                        <div key={`${subject}-${unitGroupKey(unit)}`} className="px-4 py-3">
-                          <p className="mb-2 text-xs font-black text-[#9f6c7a]">{unitTitle(unit)}</p>
-                          <div className="flex flex-wrap gap-2">
-                            {unit.rows.map((homework) => (
-                              <span
-                                key={homework.id}
-                                className="rounded-2xl border border-[#efdbe1] bg-[#fffafb] px-3 py-2 text-sm font-black text-[#4a3c40]"
-                              >
-                                {homework.taskName}
-                              </span>
-                            ))}
+                      <div className="divide-y divide-[#f2e3e7] bg-white">
+                        {units.map((unit) => (
+                          <div
+                            key={`${subject}-${unitGroupKey(unit)}`}
+                            className="px-4 py-3"
+                          >
+                            <p className="mb-2 text-xs font-black text-[#9f6c7a]">
+                              {unitTitle(unit)}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {unit.rows.map((homework) => (
+                                <span
+                                  key={homework.id}
+                                  className="rounded-2xl border border-[#efdbe1] bg-[#fffafb] px-3 py-2 text-sm font-black text-[#4a3c40]"
+                                >
+                                  {homework.taskName}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ),
+                )}
               </div>
             ) : (
               <div className="grid gap-4">
@@ -6562,7 +6762,11 @@ async function assertTeacherOnly() {
                             개
                           </span>
                           <form action={resetHomeworkTasks}>
-                            <input type="hidden" name="subject" value={subject} />
+                            <input
+                              type="hidden"
+                              name="subject"
+                              value={subject}
+                            />
                             <button
                               type="submit"
                               className="rounded-full border border-[#e7ccd5] bg-white px-3 py-1 text-[11px] font-black text-[#9f6c7a]"
@@ -6594,13 +6798,20 @@ async function assertTeacherOnly() {
 
                                 <div className="flex flex-wrap gap-2">
                                   {unit.rows.map((homework) => {
-                                    const isManual = homework.source === "manual";
+                                    const isManual =
+                                      homework.source === "manual";
                                     const isDone = isManual
-                                      ? currentTaskStatusMap.get(`${homework.progressId}::${homework.taskName}`) === "done"
-                                      : currentTaskStatusMap.get(`${homework.progressId}::${homework.taskName}`) === "done";
+                                      ? currentTaskStatusMap.get(
+                                          `${homework.progressId}::${homework.taskName}`,
+                                        ) === "done"
+                                      : currentTaskStatusMap.get(
+                                          `${homework.progressId}::${homework.taskName}`,
+                                        ) === "done";
                                     const isDeferred =
                                       Boolean((homework as any).deferred) ||
-                                      currentTaskStatusMap.get(`${homework.progressId}::${homework.taskName}`) === "deferred";
+                                      currentTaskStatusMap.get(
+                                        `${homework.progressId}::${homework.taskName}`,
+                                      ) === "deferred";
 
                                     return (
                                       <div
@@ -6621,18 +6832,48 @@ async function assertTeacherOnly() {
                                         ) : (
                                           <div className="flex shrink-0 items-center gap-1">
                                             <form action={completeHomeworkTask}>
-                                              <input type="hidden" name="record_id" value={homework.recordId || ""} />
-                                              <input type="hidden" name="progress_id" value={homework.progressId} />
-                                              <input type="hidden" name="task_name" value={homework.taskName} />
-                                              <button type="submit" className="rounded-full bg-[#4a3c40] px-3 py-1 text-xs font-black text-white">
+                                              <input
+                                                type="hidden"
+                                                name="record_id"
+                                                value={homework.recordId || ""}
+                                              />
+                                              <input
+                                                type="hidden"
+                                                name="progress_id"
+                                                value={homework.progressId}
+                                              />
+                                              <input
+                                                type="hidden"
+                                                name="task_name"
+                                                value={homework.taskName}
+                                              />
+                                              <button
+                                                type="submit"
+                                                className="rounded-full bg-[#4a3c40] px-3 py-1 text-xs font-black text-white"
+                                              >
                                                 완료
                                               </button>
                                             </form>
                                             <form action={deferHomeworkTask}>
-                                              <input type="hidden" name="record_id" value={homework.recordId || ""} />
-                                              <input type="hidden" name="progress_id" value={homework.progressId} />
-                                              <input type="hidden" name="task_name" value={homework.taskName} />
-                                              <button type="submit" className="rounded-full border border-[#ead6af] bg-[#fff8e8] px-3 py-1 text-xs font-black text-[#8a6630]">
+                                              <input
+                                                type="hidden"
+                                                name="record_id"
+                                                value={homework.recordId || ""}
+                                              />
+                                              <input
+                                                type="hidden"
+                                                name="progress_id"
+                                                value={homework.progressId}
+                                              />
+                                              <input
+                                                type="hidden"
+                                                name="task_name"
+                                                value={homework.taskName}
+                                              />
+                                              <button
+                                                type="submit"
+                                                className="rounded-full border border-[#ead6af] bg-[#fff8e8] px-3 py-1 text-xs font-black text-[#8a6630]"
+                                              >
                                                 미루기
                                               </button>
                                             </form>
