@@ -13,9 +13,14 @@ export async function createSupabaseServerClient() {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+    // Server Component에서는 쿠키 수정이 막힐 수 있음
+    // middleware/proxy에서 세션 갱신을 처리하면 괜찮음
+          }
         },
       },
     }

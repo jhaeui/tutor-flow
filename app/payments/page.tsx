@@ -60,6 +60,7 @@ type Settlement = {
   start_date: string;
   end_date: string;
   expected_lesson_count: number;
+  previous_carryover_count: number;
   lesson_hours: number;
   hourly_rate: number;
   feedback_date: string | null;
@@ -89,6 +90,9 @@ type StudentSettlementRow = {
   settlement: Settlement;
   records: LessonRecord[];
   calendarExpectedCount: number;
+  expectedCount: number;
+  previousCarryoverCount: number;
+  settlementTargetCount: number;
   actualLessonCount: number;
   autoActualLessonCount: number;
   extraLessonCount: number;
@@ -97,13 +101,26 @@ type StudentSettlementRow = {
   expectedFee: number;
   actualFee: number;
   totalFee: number;
-  prepaidCarryoverCount: number;
+  nextCarryoverCount: number;
   prepaidExtraCount: number;
   prepaidExtraFee: number;
   progress: number;
   nextMonthExpectedCount: number;
   nextMonthTotalFee: number;
 };
+
+const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function todayText() {
+  return toDateInputValue(new Date());
+}
 
 function getMonthRange() {
   const now = new Date();
@@ -134,15 +151,11 @@ function getSettlementTitle(startDate: string) {
   return `${Number(month)}월 수업`;
 }
 
-function toDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function todayText() {
-  return toDateInputValue(new Date());
+function getPreviousMonthLabel(startDate: string) {
+  const [year, month] = startDate.split("-").map(Number);
+  if (!year || !month) return "전월";
+  const previous = new Date(year, month - 2, 1);
+  return `${previous.getMonth() + 1}월`;
 }
 
 function formatMoney(value: number) {
@@ -161,8 +174,7 @@ function formatDateShort(date: string | null) {
   if (!date) return "날짜 선택";
   const dateObj = new Date(`${date}T00:00:00`);
   const [, month, day] = date.split("-");
-  const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
-  return `${month}/${day}/${weekdays[dateObj.getDay()]}`;
+  return `${month}/${day}/${WEEKDAY_LABELS[dateObj.getDay()]}`;
 }
 
 function clampPercent(value: number) {
@@ -177,8 +189,6 @@ function normalizePaymentStatus(value?: string | null): PaymentStatus {
 function normalizePaymentType(value?: string | null): PaymentType {
   return value === "후불" ? "후불" : "선불";
 }
-
-const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
 function dateToDayLabel(dateText?: string | null) {
   if (!dateText) return "";
@@ -202,11 +212,6 @@ function eachDateInRange(startDate: string, endDate: string) {
   return dates;
 }
 
-function normalizeTimeValue(value?: string | null) {
-  if (!value) return "";
-  return String(value).slice(0, 5);
-}
-
 function countCalendarExpectedLessons(
   studentId: string,
   startDate: string,
@@ -218,9 +223,7 @@ function countCalendarExpectedLessons(
   const studentLessonTimes = lessonTimes.filter(
     (lessonTime) => lessonTime.student_id === studentId,
   );
-  const studentEvents = events.filter(
-    (event) => event.student_id === studentId,
-  );
+  const studentEvents = events.filter((event) => event.student_id === studentId);
   const studentMakeups = makeupLessons.filter(
     (lesson) => lesson.student_id === studentId,
   );
@@ -303,6 +306,7 @@ function makeDefaultSettlement(
     start_date: startDate,
     end_date: endDate,
     expected_lesson_count: 0,
+    previous_carryover_count: 0,
     lesson_hours:
       Number(student.lesson_hours || student.default_lesson_hours || 0) > 0
         ? Number(student.lesson_hours || student.default_lesson_hours)
@@ -356,6 +360,31 @@ function saveStoredSettlementRange(monthText: string, startDate: string, endDate
   );
 }
 
+function normalizeSettlement(item: any): Settlement {
+  return {
+    ...item,
+    expected_lesson_count: Number(item.expected_lesson_count || 0),
+    previous_carryover_count: Number(item.previous_carryover_count || 0),
+    lesson_hours: Number(item.lesson_hours || 2),
+    hourly_rate: Number(item.hourly_rate || 35000),
+    feedback_done: Boolean(item.feedback_done),
+    payment_status: normalizePaymentStatus(item.payment_status),
+    payment_type: normalizePaymentType(item.payment_type),
+    payment_completed_date: item.payment_completed_date || null,
+    feedback_note: item.feedback_note || null,
+    feedback_date: item.feedback_date || null,
+    actual_lesson_count_override:
+      item.actual_lesson_count_override === null ||
+      item.actual_lesson_count_override === undefined
+        ? null
+        : Number(item.actual_lesson_count_override),
+    total_fee_override:
+      item.total_fee_override === null || item.total_fee_override === undefined
+        ? null
+        : Number(item.total_fee_override),
+  };
+}
+
 export default function PaymentsPage() {
   const { startDate: defaultStart, endDate: defaultEnd } = useMemo(
     () => getMonthRange(),
@@ -375,19 +404,14 @@ export default function PaymentsPage() {
   const [events, setEvents] = useState<StudentEvent[]>([]);
   const [makeupLessons, setMakeupLessons] = useState<MakeupLesson[]>([]);
   const [nextMonthEvents, setNextMonthEvents] = useState<StudentEvent[]>([]);
-  const [nextMonthMakeupLessons, setNextMonthMakeupLessons] = useState<
-    MakeupLesson[]
-  >([]);
-  const [nextMonthSettlements, setNextMonthSettlements] = useState<
-    Record<string, Settlement>
-  >({});
-  const [settlements, setSettlements] = useState<Record<string, Settlement>>(
-    {},
-  );
+  const [nextMonthMakeupLessons, setNextMonthMakeupLessons] = useState<MakeupLesson[]>([]);
+  const [nextMonthSettlements, setNextMonthSettlements] = useState<Record<string, Settlement>>({});
+  const [settlements, setSettlements] = useState<Record<string, Settlement>>({});
   const [memos, setMemos] = useState<SettlementMemo[]>([]);
   const [openSettings, setOpenSettings] = useState<Record<string, boolean>>({});
   const [editingExpected, setEditingExpected] = useState<string | null>(null);
   const [editingActual, setEditingActual] = useState<string | null>(null);
+  const [editingCarryover, setEditingCarryover] = useState<string | null>(null);
   const [editingTotalFee, setEditingTotalFee] = useState<string | null>(null);
   const [newMemoStudentId, setNewMemoStudentId] = useState("");
   const [newMemo, setNewMemo] = useState("");
@@ -434,10 +458,7 @@ export default function PaymentsPage() {
         nextMonthSettlementsResult,
         memosResult,
       ] = await Promise.all([
-        supabase
-          .from("students")
-          .select("*")
-          .order("name", { ascending: true }),
+        supabase.from("students").select("*").order("name", { ascending: true }),
         supabase
           .from("lesson_records")
           .select(
@@ -445,9 +466,7 @@ export default function PaymentsPage() {
           )
           .gte("lesson_date", startDate)
           .lte("lesson_date", endDate),
-        supabase
-          .from("student_lesson_times")
-          .select("id, student_id, day_of_week, start_time, end_time"),
+        supabase.from("student_lesson_times").select("id, student_id, day_of_week, start_time, end_time"),
         supabase
           .from("student_events")
           .select(
@@ -458,17 +477,11 @@ export default function PaymentsPage() {
           ),
         supabase
           .from("makeup_lessons")
-          .select(
-            "id, student_id, absent_date, makeup_date, makeup_time, is_done",
-          )
+          .select("id, student_id, absent_date, makeup_date, makeup_time, is_done")
           .or(
             `and(absent_date.gte.${startDate},absent_date.lte.${endDate}),and(makeup_date.gte.${startDate},makeup_date.lte.${endDate})`,
           ),
-        supabase
-          .from("settlements")
-          .select("*")
-          .eq("start_date", startDate)
-          .eq("end_date", endDate),
+        supabase.from("settlements").select("*").eq("start_date", startDate).eq("end_date", endDate),
         supabase
           .from("student_events")
           .select(
@@ -479,9 +492,7 @@ export default function PaymentsPage() {
           ),
         supabase
           .from("makeup_lessons")
-          .select(
-            "id, student_id, absent_date, makeup_date, makeup_time, is_done",
-          )
+          .select("id, student_id, absent_date, makeup_date, makeup_time, is_done")
           .or(
             `and(absent_date.gte.${nextMonthInfo.startDate},absent_date.lte.${nextMonthInfo.endDate}),and(makeup_date.gte.${nextMonthInfo.startDate},makeup_date.lte.${nextMonthInfo.endDate})`,
           ),
@@ -505,68 +516,23 @@ export default function PaymentsPage() {
       if (makeupLessonsResult.error) throw makeupLessonsResult.error;
       if (settlementsResult.error) throw settlementsResult.error;
       if (nextMonthEventsResult.error) throw nextMonthEventsResult.error;
-      if (nextMonthMakeupLessonsResult.error)
-        throw nextMonthMakeupLessonsResult.error;
-      if (nextMonthSettlementsResult.error)
-        throw nextMonthSettlementsResult.error;
+      if (nextMonthMakeupLessonsResult.error) throw nextMonthMakeupLessonsResult.error;
+      if (nextMonthSettlementsResult.error) throw nextMonthSettlementsResult.error;
       if (memosResult.error) throw memosResult.error;
 
       const loadedStudents = (studentsResult.data || []) as Student[];
-      const loadedSettlements = (
-        (settlementsResult.data || []) as any[]
-      ).reduce(
+
+      const loadedSettlements = ((settlementsResult.data || []) as any[]).reduce(
         (acc, item) => {
-          acc[item.student_id] = {
-            ...item,
-            expected_lesson_count: Number(item.expected_lesson_count || 0),
-            lesson_hours: Number(item.lesson_hours || 2),
-            hourly_rate: Number(item.hourly_rate || 35000),
-            feedback_done: Boolean(item.feedback_done),
-            payment_status: normalizePaymentStatus(item.payment_status),
-            payment_type: normalizePaymentType(item.payment_type),
-            payment_completed_date: item.payment_completed_date || null,
-            feedback_note: item.feedback_note || null,
-            actual_lesson_count_override:
-              item.actual_lesson_count_override === null ||
-              item.actual_lesson_count_override === undefined
-                ? null
-                : Number(item.actual_lesson_count_override),
-            total_fee_override:
-              item.total_fee_override === null ||
-              item.total_fee_override === undefined
-                ? null
-                : Number(item.total_fee_override),
-          } as Settlement;
+          acc[item.student_id] = normalizeSettlement(item);
           return acc;
         },
         {} as Record<string, Settlement>,
       );
 
-      const loadedNextMonthSettlements = (
-        (nextMonthSettlementsResult.data || []) as any[]
-      ).reduce(
+      const loadedNextMonthSettlements = ((nextMonthSettlementsResult.data || []) as any[]).reduce(
         (acc, item) => {
-          acc[item.student_id] = {
-            ...item,
-            expected_lesson_count: Number(item.expected_lesson_count || 0),
-            lesson_hours: Number(item.lesson_hours || 2),
-            hourly_rate: Number(item.hourly_rate || 35000),
-            feedback_done: Boolean(item.feedback_done),
-            payment_status: normalizePaymentStatus(item.payment_status),
-            payment_type: normalizePaymentType(item.payment_type),
-            payment_completed_date: item.payment_completed_date || null,
-            feedback_note: item.feedback_note || null,
-            actual_lesson_count_override:
-              item.actual_lesson_count_override === null ||
-              item.actual_lesson_count_override === undefined
-                ? null
-                : Number(item.actual_lesson_count_override),
-            total_fee_override:
-              item.total_fee_override === null ||
-              item.total_fee_override === undefined
-                ? null
-                : Number(item.total_fee_override),
-          } as Settlement;
+          acc[item.student_id] = normalizeSettlement(item);
           return acc;
         },
         {} as Record<string, Settlement>,
@@ -575,8 +541,7 @@ export default function PaymentsPage() {
       const mergedSettlements = loadedStudents.reduce(
         (acc, student) => {
           acc[student.id] =
-            loadedSettlements[student.id] ||
-            makeDefaultSettlement(student, startDate, endDate);
+            loadedSettlements[student.id] || makeDefaultSettlement(student, startDate, endDate);
           return acc;
         },
         {} as Record<string, Settlement>,
@@ -588,9 +553,7 @@ export default function PaymentsPage() {
       setEvents((eventsResult.data || []) as StudentEvent[]);
       setMakeupLessons((makeupLessonsResult.data || []) as MakeupLesson[]);
       setNextMonthEvents((nextMonthEventsResult.data || []) as StudentEvent[]);
-      setNextMonthMakeupLessons(
-        (nextMonthMakeupLessonsResult.data || []) as MakeupLesson[],
-      );
+      setNextMonthMakeupLessons((nextMonthMakeupLessonsResult.data || []) as MakeupLesson[]);
       setNextMonthSettlements(loadedNextMonthSettlements);
       setSettlements(mergedSettlements);
       setMemos((memosResult.data || []) as SettlementMemo[]);
@@ -607,15 +570,9 @@ export default function PaymentsPage() {
 
   const rows = useMemo<StudentSettlementRow[]>(() => {
     return students.map((student) => {
-      const settlement =
-        settlements[student.id] ||
-        makeDefaultSettlement(student, startDate, endDate);
-      const studentRecords = records.filter(
-        (record) => record.student_id === student.id,
-      );
-      const billableRecords = studentRecords.filter(
-        (record) => !record.is_extra,
-      );
+      const settlement = settlements[student.id] || makeDefaultSettlement(student, startDate, endDate);
+      const studentRecords = records.filter((record) => record.student_id === student.id);
+      const billableRecords = studentRecords.filter((record) => !record.is_extra);
       const extraRecords = studentRecords.filter((record) => record.is_extra);
 
       const calendarExpectedCount = countCalendarExpectedLessons(
@@ -650,9 +607,9 @@ export default function PaymentsPage() {
         return sum + Math.max(0, total - extra);
       }, 0);
 
-      const expectedCount = Number(
-        settlement.expected_lesson_count || calendarExpectedCount || 0,
-      );
+      const expectedCount = Number(settlement.expected_lesson_count || calendarExpectedCount || 0);
+      const previousCarryoverCount = Number(settlement.previous_carryover_count || 0);
+      const settlementTargetCount = expectedCount + previousCarryoverCount;
       const lessonHours = Number(settlement.lesson_hours || 0);
       const hourlyRate = Number(settlement.hourly_rate || 0);
       const oneLessonFee = lessonHours * hourlyRate;
@@ -661,24 +618,20 @@ export default function PaymentsPage() {
       const actualFee = actualLessonCount * oneLessonFee;
       const paymentType = settlement.payment_type || "선불";
 
-      const prepaidCarryoverCount =
-        paymentType === "선불"
-          ? Math.max(expectedCount - actualLessonCount, 0)
-          : 0;
+      const nextCarryoverCount =
+        paymentType === "선불" ? Math.max(settlementTargetCount - actualLessonCount, 0) : 0;
       const prepaidExtraCount =
-        paymentType === "선불"
-          ? Math.max(actualLessonCount - expectedCount, 0)
-          : 0;
+        paymentType === "선불" ? Math.max(actualLessonCount - settlementTargetCount, 0) : 0;
       const prepaidExtraFee = prepaidExtraCount * oneLessonFee;
       const autoTotalFee = paymentType === "선불" ? expectedFee : actualFee;
       const totalFee =
-        settlement.total_fee_override === null ||
-        settlement.total_fee_override === undefined
+        settlement.total_fee_override === null || settlement.total_fee_override === undefined
           ? autoTotalFee
           : Number(settlement.total_fee_override || 0);
 
       const progress =
-        expectedCount > 0 ? (actualLessonCount / expectedCount) * 100 : 0;
+        settlementTargetCount > 0 ? (actualLessonCount / settlementTargetCount) * 100 : 0;
+
       const nextMonthInfoForRow = getMonthRangeByOffset(startDate, 1);
       const nextMonthAutoExpectedCount = countCalendarExpectedLessons(
         student.id,
@@ -690,18 +643,12 @@ export default function PaymentsPage() {
       );
       const nextMonthSettlement = nextMonthSettlements[student.id];
       const nextMonthExpectedCount = Number(
-        nextMonthSettlement?.expected_lesson_count ||
-          nextMonthAutoExpectedCount ||
-          0,
+        nextMonthSettlement?.expected_lesson_count || nextMonthAutoExpectedCount || 0,
       );
-      const nextMonthLessonHours = Number(
-        nextMonthSettlement?.lesson_hours || lessonHours || 0,
-      );
-      const nextMonthHourlyRate = Number(
-        nextMonthSettlement?.hourly_rate || hourlyRate || 0,
-      );
-      const nextMonthAutoTotalFee =
-        nextMonthExpectedCount * nextMonthLessonHours * nextMonthHourlyRate;
+      const nextMonthCarryoverCount = Number(nextMonthSettlement?.previous_carryover_count || 0);
+      const nextMonthLessonHours = Number(nextMonthSettlement?.lesson_hours || lessonHours || 0);
+      const nextMonthHourlyRate = Number(nextMonthSettlement?.hourly_rate || hourlyRate || 0);
+      const nextMonthAutoTotalFee = nextMonthExpectedCount * nextMonthLessonHours * nextMonthHourlyRate;
       const nextMonthTotalFee =
         nextMonthSettlement?.total_fee_override === null ||
         nextMonthSettlement?.total_fee_override === undefined
@@ -713,6 +660,9 @@ export default function PaymentsPage() {
         settlement,
         records: studentRecords,
         calendarExpectedCount,
+        expectedCount,
+        previousCarryoverCount,
+        settlementTargetCount,
         actualLessonCount,
         autoActualLessonCount,
         extraLessonCount,
@@ -721,11 +671,11 @@ export default function PaymentsPage() {
         expectedFee,
         actualFee,
         totalFee,
-        prepaidCarryoverCount,
+        nextCarryoverCount,
         prepaidExtraCount,
         prepaidExtraFee,
         progress,
-        nextMonthExpectedCount,
+        nextMonthExpectedCount: nextMonthExpectedCount + nextMonthCarryoverCount,
         nextMonthTotalFee,
       };
     });
@@ -736,26 +686,16 @@ export default function PaymentsPage() {
     events,
     makeupLessons,
     settlements,
+    nextMonthEvents,
+    nextMonthMakeupLessons,
+    nextMonthSettlements,
     startDate,
     endDate,
   ]);
 
-  const overallExpectedCount = rows.reduce(
-    (sum, row) =>
-      sum +
-      Number(
-        row.settlement.expected_lesson_count || row.calendarExpectedCount || 0,
-      ),
-    0,
-  );
-  const overallActualCount = rows.reduce(
-    (sum, row) => sum + row.actualLessonCount,
-    0,
-  );
-  const overallProgress =
-    overallExpectedCount > 0
-      ? (overallActualCount / overallExpectedCount) * 100
-      : 0;
+  const overallExpectedCount = rows.reduce((sum, row) => sum + row.settlementTargetCount, 0);
+  const overallActualCount = rows.reduce((sum, row) => sum + row.actualLessonCount, 0);
+  const overallProgress = overallExpectedCount > 0 ? (overallActualCount / overallExpectedCount) * 100 : 0;
 
   const totalSettlementFee = rows.reduce((sum, row) => sum + row.totalFee, 0);
   const totalUnpaidFee = rows.reduce((sum, row) => {
@@ -763,10 +703,7 @@ export default function PaymentsPage() {
     return sum;
   }, 0);
 
-  function updateLocalSettlement(
-    studentId: string,
-    patch: Partial<Settlement>,
-  ) {
+  function updateLocalSettlement(studentId: string, patch: Partial<Settlement>) {
     setSettlements((prev) => ({
       ...prev,
       [studentId]: {
@@ -776,17 +713,11 @@ export default function PaymentsPage() {
     }));
   }
 
-  async function saveSettlement(
-    studentId: string,
-    patch?: Partial<Settlement>,
-  ) {
+  async function saveSettlement(studentId: string, patch?: Partial<Settlement>) {
     const current =
       settlements[studentId] ||
       makeDefaultSettlement(
-        students.find((student) => student.id === studentId) || {
-          id: studentId,
-          name: "",
-        },
+        students.find((student) => student.id === studentId) || { id: studentId, name: "" },
         startDate,
         endDate,
       );
@@ -800,24 +731,23 @@ export default function PaymentsPage() {
       expected_lesson_count: Number(
         (patch?.expected_lesson_count ?? current.expected_lesson_count) || 0,
       ),
+      previous_carryover_count: Number(
+        (patch?.previous_carryover_count ?? current.previous_carryover_count) || 0,
+      ),
       lesson_hours: Number((patch?.lesson_hours ?? current.lesson_hours) || 0),
       hourly_rate: Number((patch?.hourly_rate ?? current.hourly_rate) || 0),
-      payment_status: normalizePaymentStatus(
-        patch?.payment_status ?? current.payment_status,
-      ),
-      payment_type: normalizePaymentType(
-        patch?.payment_type ?? current.payment_type,
-      ),
+      payment_status: normalizePaymentStatus(patch?.payment_status ?? current.payment_status),
+      payment_type: normalizePaymentType(patch?.payment_type ?? current.payment_type),
       payment_completed_date:
         patch?.payment_completed_date ?? current.payment_completed_date ?? null,
       feedback_note: patch?.feedback_note ?? current.feedback_note ?? null,
       actual_lesson_count_override:
         patch?.actual_lesson_count_override === undefined
-          ? (current.actual_lesson_count_override ?? null)
+          ? current.actual_lesson_count_override ?? null
           : patch.actual_lesson_count_override,
       total_fee_override:
         patch?.total_fee_override === undefined
-          ? (current.total_fee_override ?? null)
+          ? current.total_fee_override ?? null
           : patch.total_fee_override,
       feedback_done: Boolean(patch?.feedback_done ?? current.feedback_done),
       feedback_date: patch?.feedback_date ?? current.feedback_date ?? null,
@@ -835,6 +765,7 @@ export default function PaymentsPage() {
           start_date: next.start_date,
           end_date: next.end_date,
           expected_lesson_count: next.expected_lesson_count,
+          previous_carryover_count: next.previous_carryover_count,
           lesson_hours: next.lesson_hours,
           hourly_rate: next.hourly_rate,
           feedback_date: next.feedback_date,
@@ -852,18 +783,12 @@ export default function PaymentsPage() {
 
       if (error) throw error;
 
-      // 정산설정에서 바꾼 기본값은 다음달/이전달로 이동해도 유지되도록 학생 기본값에도 같이 저장해요.
       const studentPatch: Record<string, number> = {};
-      if (patch?.lesson_hours !== undefined)
-        studentPatch.default_lesson_hours = next.lesson_hours;
-      if (patch?.hourly_rate !== undefined)
-        studentPatch.hourly_rate = next.hourly_rate;
+      if (patch?.lesson_hours !== undefined) studentPatch.default_lesson_hours = next.lesson_hours;
+      if (patch?.hourly_rate !== undefined) studentPatch.hourly_rate = next.hourly_rate;
 
       if (Object.keys(studentPatch).length > 0) {
-        await supabase
-          .from("students")
-          .update(studentPatch)
-          .eq("id", studentId);
+        await supabase.from("students").update(studentPatch).eq("id", studentId);
       }
 
       updateLocalSettlement(studentId, next);
@@ -899,10 +824,7 @@ export default function PaymentsPage() {
     setErrorMessage("");
 
     try {
-      const { error } = await supabase
-        .from("settlement_memos")
-        .delete()
-        .eq("id", memoId);
+      const { error } = await supabase.from("settlement_memos").delete().eq("id", memoId);
 
       if (error) throw error;
       setMemos((prev) => prev.filter((memo) => memo.id !== memoId));
@@ -915,29 +837,28 @@ export default function PaymentsPage() {
     const studentName = row.student.name;
     const settlement = row.settlement;
     const paymentType = settlement.payment_type || "선불";
-    const expectedCount = Number(
-      settlement.expected_lesson_count || row.calendarExpectedCount || 0,
-    );
+    const expectedCount = row.expectedCount;
     const lessonHours = Number(settlement.lesson_hours || 0);
-    const feedbackDateText = settlement.feedback_date
-      ? formatDateShort(settlement.feedback_date)
-      : "월말";
+    const feedbackDateText = settlement.feedback_date ? formatDateShort(settlement.feedback_date) : "월말";
 
     const extraLessonLine =
-      row.extraLessonCount > 0
-        ? `\n추가수업은 ${row.extraLessonCount}회 진행되었습니다.`
-        : "";
+      row.extraLessonCount > 0 ? `\n추가수업은 ${row.extraLessonCount}회 진행되었습니다.` : "";
 
     const paymentLine =
       paymentType === "선불"
         ? `다음 달 총 수업료는 ${formatMoney(row.totalFee)}입니다.`
         : `이번 달 실제 진행 기준 수업료는 ${formatMoney(row.totalFee)}입니다.`;
 
-    const carryLine =
-      paymentType === "선불" && row.prepaidCarryoverCount > 0
-        ? `\n${Number(startDate.split("-")[1])}월 수업 ${row.prepaidCarryoverCount}회가 다음 달로 이월됩니다.`
+    const previousCarryLine =
+      paymentType === "선불" && row.previousCarryoverCount > 0
+        ? `\n${getPreviousMonthLabel(startDate)}에 진행하지 못한 수업 ${row.previousCarryoverCount}회가 이번 달 수업에 함께 반영됩니다.`
+        : "";
+
+    const nextCarryLine =
+      paymentType === "선불" && row.nextCarryoverCount > 0
+        ? `\n이번 달까지 진행하지 못한 수업 ${row.nextCarryoverCount}회는 다음 달로 이월됩니다.`
         : paymentType === "선불" && row.prepaidExtraCount > 0
-          ? `\n${Number(startDate.split("-")[1])}월 수업이 예정보다 ${row.prepaidExtraCount}회 더 진행되어, 추가 수업료 ${formatMoney(row.prepaidExtraFee)}는 다음 달 정산에 함께 반영하겠습니다.`
+          ? `\n예정보다 ${row.prepaidExtraCount}회 더 진행되어, 추가 수업료 ${formatMoney(row.prepaidExtraFee)}는 다음 달 정산에 함께 반영하겠습니다.`
           : "";
 
     const feedbackNote = settlement.feedback_note?.trim()
@@ -947,7 +868,7 @@ export default function PaymentsPage() {
     return `어머님 안녕하세요^^ ${studentName} ${getSettlementTitle(startDate)} 수업 안내드립니다.
 
 ${feedbackDateText} 기준으로 이번 회차 수업 정리드리며, 다음 달 예정 수업은 ${expectedCount}회, 회당 ${lessonHours}시간 기준입니다.
-${paymentLine}${carryLine}${extraLessonLine}
+${paymentLine}${previousCarryLine}${nextCarryLine}${extraLessonLine}
 
 다음 달 수업은 총 ${row.nextMonthExpectedCount}회로, 수업료는 ${formatMoney(row.nextMonthTotalFee)}입니다.
 수업료는 토스뱅크 1000-2247-9798 김재이로 입금해주시면 감사하겠습니다.
@@ -975,18 +896,13 @@ ${feedbackNote}
       <div className="mx-auto max-w-6xl">
         <header className="mb-8 flex flex-col gap-5 rounded-[2rem] border border-[#f4d6df] bg-white/80 p-6 shadow-sm md:flex-row md:items-start md:justify-between">
           <div>
-            <Link
-              href="/"
-              className="text-sm font-semibold text-[#b56b82] hover:text-[#8f405a]"
-            >
+            <Link href="/" className="text-sm font-semibold text-[#b56b82] hover:text-[#8f405a]">
               ← 대시보드로
             </Link>
 
-            <h1 className="mt-3 text-3xl font-black text-[#583743]">
-              월별 정산
-            </h1>
+            <h1 className="mt-3 text-3xl font-black text-[#583743]">월별 정산</h1>
             <p className="mt-2 text-sm font-semibold text-[#9b6d7a]">
-              선불/후불, 이월 수업, 학부모 안내문자를 한 번에 정리해요.
+              선불/후불, 전월 이월 수업, 학부모 안내문자를 한 번에 정리해요.
             </p>
           </div>
 
@@ -1048,7 +964,7 @@ ${feedbackNote}
           <SummaryBox
             title="이번달 정산 총액"
             value={formatMoney(totalSettlementFee)}
-            sub="선불은 예정 기준, 후불은 실제 진행 기준"
+            sub="선불은 이번달 예상횟수만, 후불은 실제 진행 기준"
           />
           <SummaryBox
             title="미입금 수업료"
@@ -1061,17 +977,13 @@ ${feedbackNote}
         <section className="rounded-[2rem] border border-[#f3d3dd] bg-white p-5 shadow-sm">
           <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-xl font-black text-[#583743]">
-                학생별 정산 현황
-              </h2>
+              <h2 className="text-xl font-black text-[#583743]">학생별 정산 현황</h2>
               <p className="mt-1 text-sm font-semibold text-[#9b6d7a]">
                 학생 이름을 누르면 상세페이지로 이동해요.
               </p>
             </div>
 
-            {loading && (
-              <p className="text-sm font-bold text-[#b56b82]">불러오는 중...</p>
-            )}
+            {loading && <p className="text-sm font-bold text-[#b56b82]">불러오는 중...</p>}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
@@ -1080,6 +992,7 @@ ${feedbackNote}
               const settlement = row.settlement;
               const isOpen = Boolean(openSettings[studentId]);
               const isEditingExpected = editingExpected === studentId;
+              const isEditingCarryover = editingCarryover === studentId;
               const paymentType = settlement.payment_type || "선불";
 
               return (
@@ -1120,32 +1033,21 @@ ${feedbackNote}
                       </button>
 
                       {savingId === studentId && (
-                        <span className="text-xs font-bold text-[#c4778c]">
-                          저장 중...
-                        </span>
+                        <span className="text-xs font-bold text-[#c4778c]">저장 중...</span>
                       )}
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <InfoCard
-                        title={
-                          paymentType === "후불" ? "예상 수업료" : "총 수업료"
-                        }
-                        tone="strong"
-                      >
+                      <InfoCard title={paymentType === "후불" ? "예상 수업료" : "총 수업료"} tone="strong">
                         {editingTotalFee === studentId ? (
                           <input
                             type="number"
                             min="0"
                             step="1000"
-                            value={
-                              settlement.total_fee_override ?? row.totalFee
-                            }
+                            value={settlement.total_fee_override ?? row.totalFee}
                             onChange={(event) =>
                               updateLocalSettlement(studentId, {
-                                total_fee_override: Number(
-                                  event.target.value || 0,
-                                ),
+                                total_fee_override: Number(event.target.value || 0),
                               })
                             }
                             onBlur={() => {
@@ -1171,12 +1073,7 @@ ${feedbackNote}
                               {formatMoney(row.totalFee)}
                             </button>
                             <span className="shrink-0 rounded-2xl bg-white px-3 py-1.5 text-sm font-black text-[#9b4f65] shadow-sm ring-1 ring-[#f3c4d1]">
-                              {Number(
-                                row.settlement.expected_lesson_count ||
-                                  row.calendarExpectedCount ||
-                                  0,
-                              )}
-                              회 × {Number(settlement.lesson_hours || 0)}시간
+                              {row.expectedCount}회분만 청구 · {Number(settlement.lesson_hours || 0)}시간
                             </span>
                           </div>
                         )}
@@ -1186,12 +1083,8 @@ ${feedbackNote}
                             <button
                               type="button"
                               onClick={() => {
-                                updateLocalSettlement(studentId, {
-                                  total_fee_override: null,
-                                });
-                                saveSettlement(studentId, {
-                                  total_fee_override: null,
-                                });
+                                updateLocalSettlement(studentId, { total_fee_override: null });
+                                saveSettlement(studentId, { total_fee_override: null });
                               }}
                               className="mt-2 text-[11px] font-black text-[#c4778c] underline underline-offset-2"
                             >
@@ -1200,34 +1093,74 @@ ${feedbackNote}
                           )}
                       </InfoCard>
 
-                      <InfoCard
-                        title={
-                          paymentType === "후불"
-                            ? "실제 정산액"
-                            : "이월/추가 반영"
-                        }
-                      >
-                        <span className="text-lg font-black text-[#b34262]">
-                          {paymentType === "후불"
-                            ? formatMoney(row.totalFee)
-                            : row.prepaidCarryoverCount > 0
-                              ? `${Number(startDate.split("-")[1])}월 ${row.prepaidCarryoverCount}회 이월`
-                              : row.prepaidExtraCount > 0
-                                ? `${row.prepaidExtraCount}회 추가`
-                                : "이월 없음"}
-                        </span>
-
-                        {paymentType === "선불" &&
-                          row.prepaidExtraCount > 0 && (
-                            <p className="mt-1 text-[11px] font-bold text-[#d93675]">
-                              다음달 추가 {formatMoney(row.prepaidExtraFee)}
+                      <InfoCard title={paymentType === "후불" ? "실제 정산액" : "전월 이월 / 다음 이월"}>
+                        {paymentType === "후불" ? (
+                          <>
+                            <span className="text-lg font-black text-[#b34262]">
+                              {formatMoney(row.totalFee)}
+                            </span>
+                            <p className="mt-1 text-[11px] font-bold text-[#9b6d7a]">
+                              실제 {formatHours(row.billableMinutes)}
                             </p>
-                          )}
+                          </>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-black text-[#b34262]">전월 이월</span>
 
-                        {paymentType === "후불" && (
-                          <p className="mt-1 text-[11px] font-bold text-[#9b6d7a]">
-                            실제 {formatHours(row.billableMinutes)}
-                          </p>
+                              {isEditingCarryover ? (
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={row.previousCarryoverCount}
+                                  onChange={(event) =>
+                                    updateLocalSettlement(studentId, {
+                                      previous_carryover_count: Number(event.target.value || 0),
+                                      total_fee_override: null,
+                                    })
+                                  }
+                                  onBlur={() => {
+                                    setEditingCarryover(null);
+                                    saveSettlement(studentId);
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      setEditingCarryover(null);
+                                      saveSettlement(studentId);
+                                    }
+                                  }}
+                                  autoFocus
+                                  className="w-20 rounded-2xl border border-[#efc8d4] bg-white px-3 py-1.5 text-right text-sm font-black outline-none focus:border-[#dc7f9a]"
+                                />
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingCarryover(studentId)}
+                                  className="rounded-full bg-white px-3 py-1 text-sm font-black text-[#7d2f49] underline decoration-[#f3b6c6] underline-offset-4 ring-1 ring-[#f3d3dd]"
+                                >
+                                  {row.previousCarryoverCount}회
+                                </button>
+                              )}
+                            </div>
+
+                            <p className="text-[11px] font-bold text-[#9b6d7a]">
+                              {getPreviousMonthLabel(startDate)}에 못 해서 이번 달에 해야 하는 수업
+                            </p>
+
+                            {row.nextCarryoverCount > 0 ? (
+                              <p className="rounded-2xl bg-[#fff0f5] px-3 py-2 text-xs font-black text-[#b34262]">
+                                다음달 이월 예정 {row.nextCarryoverCount}회
+                              </p>
+                            ) : row.prepaidExtraCount > 0 ? (
+                              <p className="rounded-2xl bg-[#fff0f5] px-3 py-2 text-xs font-black text-[#d93675]">
+                                추가수업 {row.prepaidExtraCount}회 · 다음달 추가 {formatMoney(row.prepaidExtraFee)}
+                              </p>
+                            ) : (
+                              <p className="rounded-2xl bg-[#fff7fa] px-3 py-2 text-xs font-black text-[#9b6d7a]">
+                                다음달 이월 없음
+                              </p>
+                            )}
+                          </div>
                         )}
                       </InfoCard>
 
@@ -1236,16 +1169,10 @@ ${feedbackNote}
                           <input
                             type="number"
                             min="0"
-                            value={Number(
-                              settlement.expected_lesson_count ||
-                                row.calendarExpectedCount ||
-                                0,
-                            )}
+                            value={row.expectedCount}
                             onChange={(event) =>
                               updateLocalSettlement(studentId, {
-                                expected_lesson_count: Number(
-                                  event.target.value || 0,
-                                ),
+                                expected_lesson_count: Number(event.target.value || 0),
                                 total_fee_override: null,
                               })
                             }
@@ -1269,13 +1196,13 @@ ${feedbackNote}
                               onClick={() => setEditingExpected(studentId)}
                               className="text-left text-lg font-black text-[#583743] underline decoration-[#f3b6c6] underline-offset-4"
                             >
-                              {Number(
-                                settlement.expected_lesson_count ||
-                                  row.calendarExpectedCount ||
-                                  0,
-                              )}
-                              회
+                              {row.expectedCount}회
                             </button>
+                            {row.previousCarryoverCount > 0 && (
+                              <span className="rounded-full bg-[#fff0f5] px-2.5 py-1 text-[11px] font-black text-[#d93675] ring-1 ring-[#f3c4d1]">
+                                + 전월 {row.previousCarryoverCount}회
+                              </span>
+                            )}
                             <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-[#a36879] ring-1 ring-[#f3d3dd]">
                               캘린더 자동 {row.calendarExpectedCount}회
                             </span>
@@ -1291,9 +1218,7 @@ ${feedbackNote}
                             value={row.actualLessonCount}
                             onChange={(event) =>
                               updateLocalSettlement(studentId, {
-                                actual_lesson_count_override: Number(
-                                  event.target.value || 0,
-                                ),
+                                actual_lesson_count_override: Number(event.target.value || 0),
                                 total_fee_override: null,
                               })
                             }
@@ -1323,8 +1248,7 @@ ${feedbackNote}
                               기록 자동 {row.autoActualLessonCount}회
                             </span>
                             {settlement.actual_lesson_count_override !== null &&
-                              settlement.actual_lesson_count_override !==
-                                undefined && (
+                              settlement.actual_lesson_count_override !== undefined && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1356,12 +1280,8 @@ ${feedbackNote}
                           <DateTextPicker
                             value={settlement.feedback_date}
                             onChange={(feedbackDate) => {
-                              updateLocalSettlement(studentId, {
-                                feedback_date: feedbackDate,
-                              });
-                              saveSettlement(studentId, {
-                                feedback_date: feedbackDate,
-                              });
+                              updateLocalSettlement(studentId, { feedback_date: feedbackDate });
+                              saveSettlement(studentId, { feedback_date: feedbackDate });
                             }}
                           />
 
@@ -1387,9 +1307,7 @@ ${feedbackNote}
                             </summary>
 
                             <div className="mt-3 rounded-2xl border border-[#f3d3dd] bg-[#fff9fb] p-3">
-                              <label className="text-xs font-black text-[#8e5366]">
-                                수업 피드백 메모
-                              </label>
+                              <label className="text-xs font-black text-[#8e5366]">수업 피드백 메모</label>
                               <textarea
                                 value={settlement.feedback_note || ""}
                                 onChange={(event) =>
@@ -1397,22 +1315,14 @@ ${feedbackNote}
                                     feedback_note: event.target.value,
                                   })
                                 }
-                                onBlur={() =>
-                                  saveSettlement(studentId, {
-                                    total_fee_override: null,
-                                  })
-                                }
+                                onBlur={() => saveSettlement(studentId)}
                                 placeholder="시험 결과, 숙제 수행, 수업 태도, 수행평가 관련 내용을 적어두면 아래 문자에 자동으로 들어가요."
                                 className="mt-2 min-h-24 w-full rounded-2xl border border-[#efc8d4] bg-white px-3 py-2 text-xs font-semibold leading-5 outline-none focus:border-[#dc7f9a]"
                               />
 
                               <div className="mt-3 rounded-2xl bg-white p-3 text-xs font-semibold leading-6 text-[#583743]">
-                                <p className="mb-2 font-black text-[#b34262]">
-                                  자동 안내문자 초안
-                                </p>
-                                <pre className="whitespace-pre-wrap font-sans">
-                                  {makeParentFeedbackMessage(row)}
-                                </pre>
+                                <p className="mb-2 font-black text-[#b34262]">자동 안내문자 초안</p>
+                                <pre className="whitespace-pre-wrap font-sans">{makeParentFeedbackMessage(row)}</pre>
                               </div>
 
                               <button
@@ -1420,9 +1330,7 @@ ${feedbackNote}
                                 onClick={() => copyFeedbackMessage(row)}
                                 className="mt-3 rounded-full bg-[#d96f8d] px-4 py-2 text-xs font-black text-white"
                               >
-                                {copiedStudentId === studentId
-                                  ? "복사 완료"
-                                  : "문자 복사"}
+                                {copiedStudentId === studentId ? "복사 완료" : "문자 복사"}
                               </button>
                             </div>
                           </details>
@@ -1435,16 +1343,13 @@ ${feedbackNote}
                             type="button"
                             onClick={() => {
                               const nextStatus: PaymentStatus =
-                                settlement.payment_status === "입금완료"
-                                  ? "대기중"
-                                  : "입금완료";
+                                settlement.payment_status === "입금완료" ? "대기중" : "입금완료";
 
                               saveSettlement(studentId, {
                                 payment_status: nextStatus,
                                 payment_completed_date:
                                   nextStatus === "입금완료"
-                                    ? settlement.payment_completed_date ||
-                                      todayText()
+                                    ? settlement.payment_completed_date || todayText()
                                     : null,
                               });
                             }}
@@ -1479,19 +1384,13 @@ ${feedbackNote}
                     <StudentProgressBar
                       percent={row.progress}
                       actualCount={row.actualLessonCount}
-                      expectedCount={Number(
-                        settlement.expected_lesson_count ||
-                          row.calendarExpectedCount ||
-                          0,
-                      )}
+                      expectedCount={row.settlementTargetCount}
                     />
                   </div>
 
                   {isOpen && (
                     <div className="mt-5 rounded-3xl border border-[#f3d3dd] bg-white p-4">
-                      <p className="mb-3 text-sm font-black text-[#8e5366]">
-                        숨겨둔 정산 설정
-                      </p>
+                      <p className="mb-3 text-sm font-black text-[#8e5366]">숨겨둔 정산 설정</p>
 
                       <div className="grid gap-3 md:grid-cols-5">
                         <label className="text-sm font-bold text-[#8e5366]">
@@ -1499,15 +1398,9 @@ ${feedbackNote}
                           <select
                             value={settlement.payment_type || "선불"}
                             onChange={(event) => {
-                              const paymentType = normalizePaymentType(
-                                event.target.value,
-                              );
-                              updateLocalSettlement(studentId, {
-                                payment_type: paymentType,
-                              });
-                              saveSettlement(studentId, {
-                                payment_type: paymentType,
-                              });
+                              const paymentType = normalizePaymentType(event.target.value);
+                              updateLocalSettlement(studentId, { payment_type: paymentType });
+                              saveSettlement(studentId, { payment_type: paymentType });
                             }}
                             className="mt-1 w-full rounded-2xl border border-[#efc8d4] bg-white px-3 py-2 text-sm outline-none focus:border-[#dc7f9a]"
                           >
@@ -1565,23 +1458,17 @@ ${feedbackNote}
                         </label>
 
                         <div className="rounded-2xl bg-[#fff7fa] p-3 text-sm">
-                          <p className="font-bold text-[#9b6d7a]">
-                            예상 총시간
-                          </p>
+                          <p className="font-bold text-[#9b6d7a]">청구 기준</p>
                           <p className="mt-1 text-lg font-black text-[#583743]">
-                            {Number(
-                              settlement.expected_lesson_count ||
-                                row.calendarExpectedCount ||
-                                0,
-                            ) * Number(settlement.lesson_hours || 0)}
-                            시간
+                            {row.expectedCount}회 × {Number(settlement.lesson_hours || 0)}시간
+                          </p>
+                          <p className="mt-1 text-[11px] font-bold text-[#9b6d7a]">
+                            전월 이월 {row.previousCarryoverCount}회는 청구 제외
                           </p>
                         </div>
 
                         <div className="rounded-2xl bg-[#fff7fa] p-3 text-sm">
-                          <p className="font-bold text-[#9b6d7a]">
-                            실제 총 수업시간
-                          </p>
+                          <p className="font-bold text-[#9b6d7a]">실제 총 수업시간</p>
                           <p className="mt-1 text-lg font-black text-[#583743]">
                             {formatHours(row.actualTotalMinutes)}
                           </p>
@@ -1616,7 +1503,7 @@ ${feedbackNote}
             <input
               value={newMemo}
               onChange={(event) => setNewMemo(event.target.value)}
-              placeholder="예: 솔이만 후불 / 다음달 1회 이월"
+              placeholder="예: 솔이만 후불 / 전월 이월 1회"
               className="rounded-2xl border border-[#efc8d4] bg-[#fff9fb] px-4 py-3 text-sm outline-none focus:border-[#dc7f9a]"
             />
 
@@ -1643,9 +1530,7 @@ ${feedbackNote}
                   <p className="text-[#583743]">
                     <span className="mr-2 font-black text-[#b34262]">
                       {memo.students?.name ||
-                        students.find(
-                          (student) => student.id === memo.student_id,
-                        )?.name ||
+                        students.find((student) => student.id === memo.student_id)?.name ||
                         "학생"}
                     </span>
                     {memo.memo}
@@ -1674,9 +1559,7 @@ function ProgressSummaryBox({ percent }: { percent: number }) {
   return (
     <div className="rounded-[2rem] border border-[#f3d3dd] bg-white p-6 shadow-sm">
       <p className="text-sm font-black text-[#b56b82]">전체 수업 진행률</p>
-      <p className="mt-2 text-3xl font-black text-[#583743]">
-        {Math.round(safePercent)}%
-      </p>
+      <p className="mt-2 text-3xl font-black text-[#583743]">{Math.round(safePercent)}%</p>
       <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#ffe3ec]">
         <div
           className="h-full rounded-full bg-[#e84378] transition-all duration-500"
@@ -1701,9 +1584,7 @@ function SummaryBox({
   return (
     <div
       className={`rounded-[2rem] border p-6 shadow-sm ${
-        tone === "pink"
-          ? "border-[#efb6c8] bg-[#ffe7ef]"
-          : "border-[#f3d3dd] bg-white"
+        tone === "pink" ? "border-[#efb6c8] bg-[#ffe7ef]" : "border-[#f3d3dd] bg-white"
       }`}
     >
       <p className="text-sm font-black text-[#b56b82]">{title}</p>
@@ -1725,9 +1606,7 @@ function InfoCard({
   return (
     <div
       className={`min-w-[150px] rounded-3xl p-3.5 ring-1 ${
-        tone === "strong"
-          ? "bg-[#ffdce8] ring-[#eca8bd]"
-          : "bg-white ring-[#f3d3dd]"
+        tone === "strong" ? "bg-[#ffdce8] ring-[#eca8bd]" : "bg-white ring-[#f3d3dd]"
       }`}
     >
       <p className="mb-1.5 text-xs font-black uppercase tracking-tight text-[#b56b82]">
@@ -1751,10 +1630,7 @@ function DateTextPicker({
     const input = inputRef.current;
     if (!input) return;
 
-    if (
-      typeof (input as HTMLInputElement & { showPicker?: () => void })
-        .showPicker === "function"
-    ) {
+    if (typeof (input as HTMLInputElement & { showPicker?: () => void }).showPicker === "function") {
       (input as HTMLInputElement & { showPicker: () => void }).showPicker();
     } else {
       input.click();
