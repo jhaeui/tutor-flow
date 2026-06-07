@@ -880,37 +880,43 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     supabase
       .from("students")
       .select("id, name, subject, avatar_url, exp_points, level")
-      .order("name", { ascending: true }),
-    supabase.from("student_lesson_times").select("*"),
+      .order("name", { ascending: true })
+      .limit(500),
+    supabase.from("student_lesson_times").select("*").limit(1000),
     supabase
       .from("lesson_records")
       .select("id, student_id, lesson_date, start_time, end_time, is_extra")
       .gte("lesson_date", lessonRecordFetchStart)
-      .lte("lesson_date", lessonRecordFetchEnd),
+      .lte("lesson_date", lessonRecordFetchEnd)
+      .limit(1000),
     supabase
       .from("makeup_lessons")
       .select("*")
       .or(
         `and(absent_date.gte.${scheduleFetchStart},absent_date.lte.${scheduleFetchEnd}),and(makeup_date.gte.${scheduleFetchStart},makeup_date.lte.${scheduleFetchEnd})`,
-      ),
+      )
+      .limit(500),
     supabase
       .from("student_performance_tasks")
       .select("*")
       .neq("status", "done")
       .order("due_date", { ascending: true, nullsFirst: false })
-      .order("due_time", { ascending: true }),
+      .order("due_time", { ascending: true })
+      .limit(500),
     supabase
       .from("student_events")
       .select("*")
       .or(
         `and(event_date.gte.${eventFetchStart},event_date.lte.${eventFetchEnd}),and(original_event_date.gte.${scheduleFetchStart},original_event_date.lte.${scheduleFetchEnd})`,
-      ),
+      )
+      .limit(1000),
     supabase
       .from("settlements")
       .select("*")
       .or(
         `and(start_date.lte.${today},end_date.gte.${today}),and(start_date.eq.${currentMonthInfo.startDate},end_date.eq.${currentMonthInfo.endDate}),and(feedback_date.gte.${calendarMonthInfo.startDate},feedback_date.lte.${calendarMonthInfo.endDate})`,
-      ),
+      )
+      .limit(500),
     supabase
       .from("personal_events")
       .select("*")
