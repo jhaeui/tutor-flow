@@ -112,6 +112,9 @@ function getTodayText() { return new Intl.DateTimeFormat("en-CA", { timeZone: "A
 function getNowKst() { return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" })); }
 function getTodayKoreanShort() { const today = new Date(`${getTodayText()}T00:00:00+09:00`); return today.toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul", month: "short", day: "numeric", weekday: "short" }); }
 function nextDateText(dateText: string) { const date = new Date(`${dateText}T00:00:00+09:00`); date.setDate(date.getDate() + 1); return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(date); }
+function addDaysText(dateText: string, days: number) { const date = new Date(`${dateText}T00:00:00+09:00`); date.setDate(date.getDate() + days); return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(date); }
+function minDateText(...dates: string[]) { return dates.reduce((min, date) => (date < min ? date : min), dates[0]); }
+function maxDateText(...dates: string[]) { return dates.reduce((max, date) => (date > max ? date : max), dates[0]); }
 function daysUntilDue(dateText?: string | null) { if (!dateText) return null; const today = new Date(`${getTodayText()}T00:00:00+09:00`); const due = new Date(`${dateText}T00:00:00+09:00`); if (Number.isNaN(due.getTime())) return null; return Math.round((due.getTime() - today.getTime()) / 86400000); }
 function ddayLabel(dateText?: string | null) { const diff = daysUntilDue(dateText); if (diff === null) return "D-day 없음"; if (diff === 0) return "D-Day"; if (diff > 0) return `D-${diff}`; return `D+${Math.abs(diff)}`; }
 function urgentLabel(dateText?: string | null) { const diff = daysUntilDue(dateText); if (diff === null) return ""; if (diff === 0) return "오늘"; if (diff === 1) return "내일"; if (diff < 0) return "지남"; if (diff <= 7) return `${diff}일 남음`; return ""; }
@@ -409,6 +412,11 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
   const addDate = params?.addDate || "";
   const eventId = params?.eventId || "";
   const hideClasses = params?.hideClasses === "1";
+  const today = getTodayText();
+  const calendarStart = calendar.days[0]?.dateText || today;
+  const calendarEnd = calendar.days[calendar.days.length - 1]?.dateText || today;
+  const recentStart = minDateText(addDaysText(today, -120), calendarStart);
+  const upcomingEnd = maxDateText(addDaysText(today, 180), calendarEnd);
 
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -422,16 +430,16 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
   if (!student) redirect("/login");
 
   const [{ data: records }, { data: makeupLessonRows }, { data: examProgressRows }, { data: performanceRows }, { data: lessonTimeRows }, { data: eventRows }, { data: selfStudyRows }, { data: studyTimeRows }, { data: homeworkCheckRows }, { data: goalRows }] = await Promise.all([
-    supabase.from("lesson_records").select("*").eq("student_id", studentId).order("lesson_date", { ascending: false }).order("start_time", { ascending: false }).order("created_at", { ascending: false }),
-    supabase.from("makeup_lessons").select("*").eq("student_id", studentId).order("is_done", { ascending: true }).order("absent_date", { ascending: false }).order("created_at", { ascending: false }),
-    supabase.from("exam_progress").select("*").eq("student_id", studentId).order("subject", { ascending: true }).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
-    supabase.from("student_performance_tasks").select("*").eq("student_id", studentId).order("due_date", { ascending: true }).order("due_time", { ascending: true }).order("created_at", { ascending: false }),
+    supabase.from("lesson_records").select("*").eq("student_id", studentId).gte("lesson_date", recentStart).lte("lesson_date", calendarEnd).order("lesson_date", { ascending: false }).order("start_time", { ascending: false }).order("created_at", { ascending: false }).limit(120),
+    supabase.from("makeup_lessons").select("*").eq("student_id", studentId).gte("absent_date", recentStart).lte("absent_date", upcomingEnd).order("is_done", { ascending: true }).order("absent_date", { ascending: false }).order("created_at", { ascending: false }).limit(120),
+    supabase.from("exam_progress").select("*").eq("student_id", studentId).order("subject", { ascending: true }).order("sort_order", { ascending: true }).order("created_at", { ascending: true }).limit(300),
+    supabase.from("student_performance_tasks").select("*").eq("student_id", studentId).neq("status", "done").order("due_date", { ascending: true }).order("due_time", { ascending: true }).order("created_at", { ascending: false }).limit(200),
     supabase.from("student_lesson_times").select("*").eq("student_id", studentId).order("created_at", { ascending: true }),
-    supabase.from("student_events").select("*").eq("student_id", studentId).order("event_date", { ascending: true }).order("event_time", { ascending: true }),
-    supabase.from("student_self_study_tasks").select("*").eq("student_id", studentId).order("due_date", { ascending: true }).order("created_at", { ascending: false }),
+    supabase.from("student_events").select("*").eq("student_id", studentId).gte("event_date", calendarStart).lte("event_date", upcomingEnd).order("event_date", { ascending: true }).order("event_time", { ascending: true }).limit(200),
+    supabase.from("student_self_study_tasks").select("*").eq("student_id", studentId).neq("status", "done").order("due_date", { ascending: true }).order("created_at", { ascending: false }).limit(200),
     supabase.from("student_study_time_sessions").select("*").eq("student_id", studentId).order("created_at", { ascending: false }).limit(100),
-    supabase.from("student_homework_checks").select("*").eq("student_id", studentId),
-    supabase.from("student_study_goals").select("*").eq("student_id", studentId).eq("goal_date", getTodayText()).limit(1),
+    supabase.from("student_homework_checks").select("*").eq("student_id", studentId).limit(500),
+    supabase.from("student_study_goals").select("*").eq("student_id", studentId).eq("goal_date", today).limit(1),
   ]);
 
   const lessonRecords = (records || []) as LessonRecord[];
