@@ -12,18 +12,7 @@ const teacherOnlyPaths = [
 function isTeacherOnlyPath(pathname: string) {
   if (pathname === "/") return true;
 
-  return teacherOnlyPaths.some((path) => {
-    if (path === "/students") {
-      return pathname === "/students";
-    }
-
-    return pathname.startsWith(path);
-  });
-}
-
-function getStudentIdFromPath(pathname: string) {
-  const match = pathname.match(/^\/students\/([^/]+)/);
-  return match?.[1] ?? null;
+  return teacherOnlyPaths.some((path) => pathname.startsWith(path));
 }
 
 export async function proxy(request: NextRequest) {
@@ -99,16 +88,7 @@ export async function proxy(request: NextRequest) {
   // 학생 계정이면 대시보드, 월별정산, 학생목록 차단
   if (isTeacherOnlyPath(pathname)) {
     const studentHomeUrl = request.nextUrl.clone();
-    studentHomeUrl.pathname = `/students/${profile.student_id}`;
-    return NextResponse.redirect(studentHomeUrl);
-  }
-
-  // 학생 상세페이지는 자기 id만 허용
-  const pathStudentId = getStudentIdFromPath(pathname);
-
-  if (pathStudentId && pathStudentId !== profile.student_id) {
-    const studentHomeUrl = request.nextUrl.clone();
-    studentHomeUrl.pathname = `/students/${profile.student_id}`;
+    studentHomeUrl.pathname = "/student";
     return NextResponse.redirect(studentHomeUrl);
   }
 

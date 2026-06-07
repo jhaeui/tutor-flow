@@ -300,6 +300,14 @@ function getWeekStartEnd(todayText: string) {
   };
 }
 
+function minDateText(...dates: string[]) {
+  return dates.reduce((min, date) => (date < min ? date : min), dates[0]);
+}
+
+function maxDateText(...dates: string[]) {
+  return dates.reduce((max, date) => (date > max ? date : max), dates[0]);
+}
+
 function makeWeekDates(weekStart: string) {
   return Array.from({ length: 7 }, (_, index) => addHours(weekStart, index));
 }
@@ -848,6 +856,19 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       : lessonScheduleMonthInfo.endDate;
   const { weekStart, weekEnd } = getWeekStartEnd(today);
   const weekDates = makeWeekDates(weekStart);
+  const scheduleFetchStart = minDateText(
+    weekStart,
+    lessonScheduleMonthInfo.startDate,
+  );
+  const scheduleFetchEnd = maxDateText(
+    weekEnd,
+    lessonScheduleMonthInfo.endDate,
+  );
+  const eventFetchStart = minDateText(
+    scheduleFetchStart,
+    calendarMonthInfo.startDate,
+  );
+  const eventFetchEnd = maxDateText(scheduleFetchEnd, calendarMonthInfo.endDate);
 
   const [
     studentsResult,
@@ -871,15 +892,30 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       .select("id, student_id, lesson_date, start_time, end_time, is_extra")
       .gte("lesson_date", lessonRecordFetchStart)
       .lte("lesson_date", lessonRecordFetchEnd),
-    supabase.from("makeup_lessons").select("*"),
+    supabase
+      .from("makeup_lessons")
+      .select("*")
+      .or(
+        `and(absent_date.gte.${scheduleFetchStart},absent_date.lte.${scheduleFetchEnd}),and(makeup_date.gte.${scheduleFetchStart},makeup_date.lte.${scheduleFetchEnd})`,
+      ),
     supabase
       .from("student_performance_tasks")
       .select("*")
       .neq("status", "done")
       .order("due_date", { ascending: true, nullsFirst: false })
       .order("due_time", { ascending: true }),
-    supabase.from("student_events").select("*"),
-    supabase.from("settlements").select("*"),
+    supabase
+      .from("student_events")
+      .select("*")
+      .or(
+        `and(event_date.gte.${eventFetchStart},event_date.lte.${eventFetchEnd}),and(original_event_date.gte.${scheduleFetchStart},original_event_date.lte.${scheduleFetchEnd})`,
+      ),
+    supabase
+      .from("settlements")
+      .select("*")
+      .or(
+        `and(start_date.lte.${today},end_date.gte.${today}),and(start_date.eq.${currentMonthInfo.startDate},end_date.eq.${currentMonthInfo.endDate}),and(feedback_date.gte.${calendarMonthInfo.startDate},feedback_date.lte.${calendarMonthInfo.endDate})`,
+      ),
     supabase
       .from("personal_events")
       .select("*")
@@ -895,9 +931,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     supabase
       .from("personal_todos")
       .select("*")
+      .or(`is_done.eq.false,due_date.gte.${today},due_date.is.null`)
       .order("is_done", { ascending: true })
       .order("due_date", { ascending: true, nullsFirst: false })
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
 
   const students = (studentsResult.data || []) as Student[];
