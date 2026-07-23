@@ -59,8 +59,8 @@ const SUBJECT_EMOJIS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "border-[#ead6af] bg-[#fff8e8] text-[#8a6630]",
-  saved: "border-[#cce6d6] bg-[#eef8f2] text-[#47735b]",
+  draft: "border-[#d4d4d4] bg-[#f7f7f7] text-[#404040]",
+  saved: "border-[#d4d4d4] bg-[#f7f7f7] text-[#404040]",
 };
 
 const GRADE_OPTIONS = ["1학년", "2학년", "3학년"];
@@ -164,12 +164,12 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
 
   if (error || !student) {
     return (
-      <main className="min-h-screen bg-[#fbf7f8] px-6 py-10 text-[#3f3437]">
-        <div className="mx-auto max-w-3xl rounded-[2rem] border border-[#ead9de] bg-white p-8">
+      <main className="min-h-screen bg-[#ffffff] px-6 py-10 text-[#171717]">
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-[#e5e5e5] bg-white p-8">
           <h1 className="text-2xl font-black">학생을 찾을 수 없어요.</h1>
           <Link
             href="/"
-            className="mt-6 inline-flex rounded-2xl bg-[#4a3c40] px-5 py-3 text-sm font-black text-white"
+            className="mt-6 inline-flex rounded-2xl bg-[#171717] px-5 py-3 text-sm font-black text-white"
           >
             대시보드로 돌아가기
           </Link>
@@ -327,12 +327,12 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
 
   function RecordEditor({ record }: { record: PortfolioRecord }) {
     return (
-      <details className="rounded-3xl border border-[#ead9de] bg-[#fdf9fa] p-4">
+      <details className="rounded-3xl border border-[#e5e5e5] bg-[#f7f7f7] p-4">
         <summary className="cursor-pointer list-none">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#8f6270]">
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#171717]">
                   {subjectEmoji(record.subject)} {record.subject || "기록"}
                 </span>
                 <span
@@ -343,29 +343,29 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
                   {record.status === "saved" ? "저장완료" : "정리중"}
                 </span>
                 {(record.grade_label || record.semester_label) && (
-                  <span className="rounded-full border border-[#f0c8d5] bg-[#fff7fa] px-3 py-1 text-xs font-black text-[#b64270]">
+                  <span className="rounded-full border border-[#d4d4d4] bg-[#ffffff] px-3 py-1 text-xs font-black text-[#171717]">
                     {record.grade_label || "학년 미정"} {record.semester_label || "학기 미정"}
                   </span>
                 )}
                 {record.result && (
-                  <span className="rounded-full border border-[#c9dff0] bg-[#eef7ff] px-3 py-1 text-xs font-black text-[#3f6f91]">
+                  <span className="rounded-full border border-[#d4d4d4] bg-[#f7f7f7] px-3 py-1 text-xs font-black text-[#404040]">
                     결과 {record.result}
                   </span>
                 )}
               </div>
-              <p className="mt-3 text-base font-black text-[#3f3437]">
+              <p className="mt-3 text-base font-black text-[#171717]">
                 {record.title}
               </p>
-              <p className="mt-1 text-xs font-black text-[#d93675]">
+              <p className="mt-1 text-xs font-black text-[#171717]">
                 {formatShortDate(record.record_date)} {normalizeTime(record.record_time)}
               </p>
               {record.career_keywords && (
-                <p className="mt-2 inline-flex rounded-full bg-[#fff1f5] px-3 py-1 text-xs font-black text-[#c73370]">
+                <p className="mt-2 inline-flex rounded-full bg-[#f7f7f7] px-3 py-1 text-xs font-black text-[#c73370]">
                   # {record.career_keywords}
                 </p>
               )}
             </div>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#9f5264]">
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#171717]">
               수정 열기
             </span>
           </div>
@@ -377,7 +377,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
           <select
             name="category"
             defaultValue={record.category || "수행평가"}
-            className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+            className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none"
           >
             <option value="수행평가">수행평가</option>
             <option value="발표">발표</option>
@@ -390,7 +390,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
           <select
             name="subject"
             defaultValue={record.subject || ""}
-            className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+            className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none"
           >
             <option value="">과목 없음</option>
             {SUBJECTS.map((subject) => (
@@ -403,27 +403,27 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
           <input
             name="title"
             defaultValue={record.title}
-            className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-2"
+            className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none md:col-span-2"
           />
 
           <input
             type="date"
             name="record_date"
             defaultValue={record.record_date || ""}
-            className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+            className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none"
           />
 
           <input
             name="record_time"
             defaultValue={normalizeTime(record.record_time)}
             placeholder="시간"
-            className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+            className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none"
           />
 
           <select
             name="grade_label"
             defaultValue={record.grade_label || defaultGradeLabel}
-            className="rounded-xl border border-[#f0c8d5] bg-[#fff7fa] px-3 py-2 text-sm font-bold text-[#b64270] outline-none"
+            className="rounded-xl border border-[#d4d4d4] bg-[#ffffff] px-3 py-2 text-sm font-bold text-[#171717] outline-none"
           >
             {GRADE_OPTIONS.map((grade) => (
               <option key={grade} value={grade}>
@@ -435,7 +435,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
           <select
             name="semester_label"
             defaultValue={record.semester_label || getSemesterLabelFromDate(record.record_date)}
-            className="rounded-xl border border-[#f0c8d5] bg-[#fff7fa] px-3 py-2 text-sm font-bold text-[#b64270] outline-none"
+            className="rounded-xl border border-[#d4d4d4] bg-[#ffffff] px-3 py-2 text-sm font-bold text-[#171717] outline-none"
           >
             {SEMESTER_OPTIONS.map((semester) => (
               <option key={semester} value={semester}>
@@ -449,49 +449,49 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
             defaultValue={record.result || ""}
             list="portfolio-result-options"
             placeholder="결과 입력(선택)"
-            className="rounded-xl border border-[#c9dff0] bg-[#eef7ff] px-3 py-2 text-sm font-bold text-[#3f6f91] outline-none md:col-span-2"
+            className="rounded-xl border border-[#d4d4d4] bg-[#f7f7f7] px-3 py-2 text-sm font-bold text-[#404040] outline-none md:col-span-2"
           />
 
           <input
             name="memo"
             defaultValue={record.memo || ""}
             placeholder="기존 메모"
-            className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
+            className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
           />
 
           <input
             name="career_keywords"
             defaultValue={record.career_keywords || ""}
             placeholder="진로연계 키워드  예: 마케팅, 소비자심리, 미디어"
-            className="rounded-xl border-2 border-[#f0a8c2] bg-[#fff7fa] px-3 py-2 text-sm font-bold text-[#c73370] outline-none md:col-span-3"
+            className="rounded-xl border-2 border-[#f0a8c2] bg-[#ffffff] px-3 py-2 text-sm font-bold text-[#c73370] outline-none md:col-span-3"
           />
 
           <textarea
             name="activity_summary"
             defaultValue={record.activity_summary || ""}
             placeholder="활동 내용 정리: 무엇을 했는지, 결과물이 무엇인지"
-            className="min-h-24 rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
+            className="min-h-24 rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
           />
 
           <textarea
             name="meaning"
             defaultValue={record.meaning || ""}
             placeholder="의미/역량: 어떤 점을 배웠는지, 어떤 역량이 드러나는지"
-            className="min-h-24 rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
+            className="min-h-24 rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
           />
 
           <textarea
             name="deepening_topic"
             defaultValue={record.deepening_topic || ""}
             placeholder="심화 가능 주제: 나중에 보고서/발표로 확장할 만한 주제"
-            className="min-h-24 rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
+            className="min-h-24 rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
           />
 
           <textarea
             name="next_plan"
             defaultValue={record.next_plan || ""}
             placeholder="다음 활동/보완점: 다음에 이어갈 방향"
-            className="min-h-24 rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
+            className="min-h-24 rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
           />
 
           <div className="flex flex-wrap gap-2 md:col-span-6">
@@ -499,7 +499,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
               name="status"
               value="saved"
               type="submit"
-              className="rounded-2xl bg-[#4a3c40] px-4 py-2 text-xs font-black text-white"
+              className="rounded-2xl bg-[#171717] px-4 py-2 text-xs font-black text-white"
             >
               저장완료
             </button>
@@ -507,13 +507,13 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
               name="status"
               value="draft"
               type="submit"
-              className="rounded-2xl border border-[#e8d4da] bg-white px-4 py-2 text-xs font-black text-[#8f6270]"
+              className="rounded-2xl border border-[#e5e5e5] bg-white px-4 py-2 text-xs font-black text-[#171717]"
             >
               정리중 저장
             </button>
             <button
               formAction={deletePortfolioRecord}
-              className="rounded-2xl border border-[#e8d4da] bg-[#fff7fa] px-4 py-2 text-xs font-black text-[#9f5264]"
+              className="rounded-2xl border border-[#e5e5e5] bg-[#ffffff] px-4 py-2 text-xs font-black text-[#171717]"
             >
               삭제
             </button>
@@ -524,7 +524,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[#fbf7f8] px-5 py-8 text-[#3f3437]">
+    <main className="min-h-screen bg-[#ffffff] px-5 py-8 text-[#171717]">
       <datalist id="portfolio-result-options">
         {RESULT_SUGGESTIONS.map((result) => (
           <option key={result || "empty"} value={result} />
@@ -532,54 +532,54 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
       </datalist>
 
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="rounded-[2rem] border border-[#ead9de] bg-white p-6 shadow-sm">
+        <header className="rounded-[2rem] border border-[#e5e5e5] bg-white p-6 shadow-sm">
           <Link
             href={`/students/${id}`}
-            className="inline-flex rounded-full bg-[#fdf4f6] px-3 py-1 text-xs font-black text-[#9f5264]"
+            className="inline-flex rounded-full bg-[#fdf4f6] px-3 py-1 text-xs font-black text-[#171717]"
           >
             ← 학생상세로 돌아가기
           </Link>
 
           <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-sm font-black text-[#a87583]">학생별 누적 기록장</p>
+              <p className="text-sm font-black text-[#525252]">학생별 누적 기록장</p>
               <h1 className="mt-1 text-3xl font-black tracking-tight">
                 {student.name} 생기부/학종 기록
               </h1>
-              <p className="mt-2 text-sm font-semibold text-[#8b767c]">
+              <p className="mt-2 text-sm font-semibold text-[#525252]">
                 완료된 수행평가는 여기로 넘어와서 정리 대기 상태로 남고, 따로 기록도 추가할 수 있어요.
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-center text-xs font-black text-[#8f6270]">
+            <div className="grid grid-cols-3 gap-2 text-center text-xs font-black text-[#171717]">
               <div className="rounded-2xl bg-[#fdf4f6] px-4 py-3">
-                <p className="text-lg text-[#3f3437]">{waitingTasks.length}</p>
+                <p className="text-lg text-[#171717]">{waitingTasks.length}</p>
                 <p>정리대기</p>
               </div>
               <div className="rounded-2xl bg-[#fdf4f6] px-4 py-3">
-                <p className="text-lg text-[#3f3437]">{draftRecords.length}</p>
+                <p className="text-lg text-[#171717]">{draftRecords.length}</p>
                 <p>정리중</p>
               </div>
               <div className="rounded-2xl bg-[#fdf4f6] px-4 py-3">
-                <p className="text-lg text-[#3f3437]">{savedRecords.length}</p>
+                <p className="text-lg text-[#171717]">{savedRecords.length}</p>
                 <p>저장완료</p>
               </div>
             </div>
           </div>
         </header>
 
-        <section className="rounded-[2rem] border border-[#ead9de] bg-white p-6 shadow-sm">
+        <section className="rounded-[2rem] border border-[#e5e5e5] bg-white p-6 shadow-sm">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-black">정리 대기 수행평가</h2>
-              <p className="mt-1 text-sm text-[#8b767c]">
+              <p className="mt-1 text-sm text-[#525252]">
                 학생상세페이지 수행평가 관리에서 완성 처리한 항목들이 자동으로 보여요.
               </p>
             </div>
           </div>
 
           {waitingTasks.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-[#e5cfd6] bg-[#fdf9fa] px-5 py-7 text-sm font-semibold text-[#9a838b]">
+            <div className="rounded-3xl border border-dashed border-[#e5e5e5] bg-[#f7f7f7] px-5 py-7 text-sm font-semibold text-[#525252]">
               정리 대기 중인 수행평가가 없어요.
             </div>
           ) : (
@@ -587,32 +587,32 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
               {waitingTasks.map((task) => (
                 <details
                   key={task.id}
-                  className="rounded-3xl border border-[#ead9de] bg-[#fdf9fa] p-4"
+                  className="rounded-3xl border border-[#e5e5e5] bg-[#f7f7f7] p-4"
                 >
                   <summary className="cursor-pointer list-none">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#8f6270]">
+                          <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#171717]">
                             {subjectEmoji(task.subject)} {task.subject}
                           </span>
-                          <span className="rounded-full border border-[#ead6af] bg-[#fff8e8] px-3 py-1 text-xs font-black text-[#8a6630]">
+                          <span className="rounded-full border border-[#d4d4d4] bg-[#f7f7f7] px-3 py-1 text-xs font-black text-[#404040]">
                             정리 대기
                           </span>
                         </div>
-                        <p className="mt-3 text-base font-black text-[#3f3437]">
+                        <p className="mt-3 text-base font-black text-[#171717]">
                           {task.title}
                         </p>
-                        <p className="mt-1 text-xs font-black text-[#d93675]">
+                        <p className="mt-1 text-xs font-black text-[#171717]">
                           {formatShortDate(task.due_date)} {normalizeTime(task.due_time)}
                         </p>
                         {task.memo && (
-                          <p className="mt-2 line-clamp-2 text-sm text-[#8b767c]">
+                          <p className="mt-2 line-clamp-2 text-sm text-[#525252]">
                             {task.memo}
                           </p>
                         )}
                       </div>
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#9f5264]">
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#171717]">
                         정리하기
                       </span>
                     </div>
@@ -625,7 +625,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
                     <select
                       name="subject"
                       defaultValue={task.subject}
-                      className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+                      className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none"
                     >
                       {SUBJECTS.map((subject) => (
                         <option key={subject} value={subject}>
@@ -637,27 +637,27 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
                     <input
                       name="title"
                       defaultValue={task.title}
-                      className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-2"
+                      className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none md:col-span-2"
                     />
 
                     <input
                       type="date"
                       name="record_date"
                       defaultValue={task.due_date || ""}
-                      className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+                      className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none"
                     />
 
                     <input
                       name="record_time"
                       defaultValue={normalizeTime(task.due_time)}
                       placeholder="시간"
-                      className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+                      className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none"
                     />
 
                     <select
                       name="grade_label"
                       defaultValue={defaultGradeLabel}
-                      className="rounded-xl border border-[#f0c8d5] bg-[#fff7fa] px-3 py-2 text-sm font-bold text-[#b64270] outline-none"
+                      className="rounded-xl border border-[#d4d4d4] bg-[#ffffff] px-3 py-2 text-sm font-bold text-[#171717] outline-none"
                     >
                       {GRADE_OPTIONS.map((grade) => (
                         <option key={grade} value={grade}>
@@ -669,7 +669,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
                     <select
                       name="semester_label"
                       defaultValue={getSemesterLabelFromDate(task.due_date)}
-                      className="rounded-xl border border-[#f0c8d5] bg-[#fff7fa] px-3 py-2 text-sm font-bold text-[#b64270] outline-none"
+                      className="rounded-xl border border-[#d4d4d4] bg-[#ffffff] px-3 py-2 text-sm font-bold text-[#171717] outline-none"
                     >
                       {SEMESTER_OPTIONS.map((semester) => (
                         <option key={semester} value={semester}>
@@ -682,44 +682,44 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
                       name="result"
                       list="portfolio-result-options"
                       placeholder="결과 입력(선택)"
-                      className="rounded-xl border border-[#c9dff0] bg-[#eef7ff] px-3 py-2 text-sm font-bold text-[#3f6f91] outline-none md:col-span-2"
+                      className="rounded-xl border border-[#d4d4d4] bg-[#f7f7f7] px-3 py-2 text-sm font-bold text-[#404040] outline-none md:col-span-2"
                     />
 
                     <input
                       name="memo"
                       defaultValue={task.memo || ""}
                       placeholder="기존 메모"
-                      className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
+                      className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
                     />
 
                     <input
                       name="career_keywords"
                       placeholder="진로연계 키워드  예: 마케팅, 심리, 환경, 보건"
-                      className="rounded-xl border-2 border-[#f0a8c2] bg-[#fff7fa] px-3 py-2 text-sm font-bold text-[#c73370] outline-none md:col-span-3"
+                      className="rounded-xl border-2 border-[#f0a8c2] bg-[#ffffff] px-3 py-2 text-sm font-bold text-[#c73370] outline-none md:col-span-3"
                     />
 
                     <textarea
                       name="activity_summary"
                       placeholder="활동 내용 정리: 무엇을 했는지, 결과물이 무엇인지"
-                      className="min-h-24 rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
+                      className="min-h-24 rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
                     />
 
                     <textarea
                       name="meaning"
                       placeholder="의미/역량: 어떤 점을 배웠는지, 어떤 역량이 드러나는지"
-                      className="min-h-24 rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
+                      className="min-h-24 rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
                     />
 
                     <textarea
                       name="deepening_topic"
                       placeholder="심화 가능 주제: 나중에 보고서/발표로 확장할 만한 주제"
-                      className="min-h-24 rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
+                      className="min-h-24 rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
                     />
 
                     <textarea
                       name="next_plan"
                       placeholder="다음 활동/보완점: 다음에 이어갈 방향"
-                      className="min-h-24 rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
+                      className="min-h-24 rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none md:col-span-3"
                     />
 
                     <div className="flex flex-wrap gap-2 md:col-span-6">
@@ -727,7 +727,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
                         name="status"
                         value="saved"
                         type="submit"
-                        className="rounded-2xl bg-[#4a3c40] px-4 py-2 text-xs font-black text-white"
+                        className="rounded-2xl bg-[#171717] px-4 py-2 text-xs font-black text-white"
                       >
                         저장완료
                       </button>
@@ -735,7 +735,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
                         name="status"
                         value="draft"
                         type="submit"
-                        className="rounded-2xl border border-[#e8d4da] bg-white px-4 py-2 text-xs font-black text-[#8f6270]"
+                        className="rounded-2xl border border-[#e5e5e5] bg-white px-4 py-2 text-xs font-black text-[#171717]"
                       >
                         정리중 저장
                       </button>
@@ -747,9 +747,9 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
           )}
         </section>
 
-        <section className="rounded-[2rem] border border-[#ead9de] bg-white p-6 shadow-sm">
+        <section className="rounded-[2rem] border border-[#e5e5e5] bg-white p-6 shadow-sm">
           <details>
-            <summary className="inline-flex cursor-pointer rounded-full border border-[#e8d4da] bg-[#fff7fa] px-4 py-2 text-sm font-black text-[#9f5264]">
+            <summary className="inline-flex cursor-pointer rounded-full border border-[#e5e5e5] bg-[#ffffff] px-4 py-2 text-sm font-black text-[#171717]">
               + 기록 직접 추가
             </summary>
 
@@ -757,7 +757,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
               <select
                 name="category"
                 defaultValue="기록"
-                className="rounded-xl border border-[#e8d4da] bg-[#fdf9fa] px-3 py-2 text-sm outline-none"
+                className="rounded-xl border border-[#e5e5e5] bg-[#f7f7f7] px-3 py-2 text-sm outline-none"
               >
                 <option value="수행평가">수행평가</option>
                 <option value="발표">발표</option>
@@ -769,7 +769,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
 
               <select
                 name="subject"
-                className="rounded-xl border border-[#e8d4da] bg-[#fdf9fa] px-3 py-2 text-sm outline-none"
+                className="rounded-xl border border-[#e5e5e5] bg-[#f7f7f7] px-3 py-2 text-sm outline-none"
               >
                 <option value="">과목 없음</option>
                 {SUBJECTS.map((subject) => (
@@ -782,25 +782,25 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
               <input
                 name="title"
                 placeholder="기록 제목"
-                className="rounded-xl border border-[#e8d4da] bg-[#fdf9fa] px-3 py-2 text-sm outline-none md:col-span-2"
+                className="rounded-xl border border-[#e5e5e5] bg-[#f7f7f7] px-3 py-2 text-sm outline-none md:col-span-2"
               />
 
               <input
                 type="date"
                 name="record_date"
-                className="rounded-xl border border-[#e8d4da] bg-[#fdf9fa] px-3 py-2 text-sm outline-none"
+                className="rounded-xl border border-[#e5e5e5] bg-[#f7f7f7] px-3 py-2 text-sm outline-none"
               />
 
               <input
                 name="record_time"
                 placeholder="시간"
-                className="rounded-xl border border-[#e8d4da] bg-[#fdf9fa] px-3 py-2 text-sm outline-none"
+                className="rounded-xl border border-[#e5e5e5] bg-[#f7f7f7] px-3 py-2 text-sm outline-none"
               />
 
               <select
                 name="grade_label"
                 defaultValue={defaultGradeLabel}
-                className="rounded-xl border border-[#f0c8d5] bg-[#fff7fa] px-3 py-2 text-sm font-bold text-[#b64270] outline-none"
+                className="rounded-xl border border-[#d4d4d4] bg-[#ffffff] px-3 py-2 text-sm font-bold text-[#171717] outline-none"
               >
                 {GRADE_OPTIONS.map((grade) => (
                   <option key={grade} value={grade}>
@@ -812,7 +812,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
               <select
                 name="semester_label"
                 defaultValue={defaultSemesterLabel}
-                className="rounded-xl border border-[#f0c8d5] bg-[#fff7fa] px-3 py-2 text-sm font-bold text-[#b64270] outline-none"
+                className="rounded-xl border border-[#d4d4d4] bg-[#ffffff] px-3 py-2 text-sm font-bold text-[#171717] outline-none"
               >
                 {SEMESTER_OPTIONS.map((semester) => (
                   <option key={semester} value={semester}>
@@ -825,43 +825,43 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
                 name="result"
                 list="portfolio-result-options"
                 placeholder="결과 입력(선택)"
-                className="rounded-xl border border-[#c9dff0] bg-[#eef7ff] px-3 py-2 text-sm font-bold text-[#3f6f91] outline-none md:col-span-2"
+                className="rounded-xl border border-[#d4d4d4] bg-[#f7f7f7] px-3 py-2 text-sm font-bold text-[#404040] outline-none md:col-span-2"
               />
 
               <input
                 name="memo"
                 placeholder="메모"
-                className="rounded-xl border border-[#e8d4da] bg-[#fdf9fa] px-3 py-2 text-sm outline-none md:col-span-3"
+                className="rounded-xl border border-[#e5e5e5] bg-[#f7f7f7] px-3 py-2 text-sm outline-none md:col-span-3"
               />
 
               <input
                 name="career_keywords"
                 placeholder="진로연계 키워드  예: 마케팅, 소비자심리, 미디어"
-                className="rounded-xl border-2 border-[#f0a8c2] bg-[#fff7fa] px-3 py-2 text-sm font-bold text-[#c73370] outline-none md:col-span-3"
+                className="rounded-xl border-2 border-[#f0a8c2] bg-[#ffffff] px-3 py-2 text-sm font-bold text-[#c73370] outline-none md:col-span-3"
               />
 
               <textarea
                 name="activity_summary"
                 placeholder="활동 내용 정리"
-                className="min-h-24 rounded-xl border border-[#e8d4da] bg-[#fdf9fa] px-3 py-2 text-sm outline-none md:col-span-3"
+                className="min-h-24 rounded-xl border border-[#e5e5e5] bg-[#f7f7f7] px-3 py-2 text-sm outline-none md:col-span-3"
               />
 
               <textarea
                 name="meaning"
                 placeholder="의미/역량"
-                className="min-h-24 rounded-xl border border-[#e8d4da] bg-[#fdf9fa] px-3 py-2 text-sm outline-none md:col-span-3"
+                className="min-h-24 rounded-xl border border-[#e5e5e5] bg-[#f7f7f7] px-3 py-2 text-sm outline-none md:col-span-3"
               />
 
               <textarea
                 name="deepening_topic"
                 placeholder="심화 가능 주제"
-                className="min-h-24 rounded-xl border border-[#e8d4da] bg-[#fdf9fa] px-3 py-2 text-sm outline-none md:col-span-3"
+                className="min-h-24 rounded-xl border border-[#e5e5e5] bg-[#f7f7f7] px-3 py-2 text-sm outline-none md:col-span-3"
               />
 
               <textarea
                 name="next_plan"
                 placeholder="다음 활동/보완점"
-                className="min-h-24 rounded-xl border border-[#e8d4da] bg-[#fdf9fa] px-3 py-2 text-sm outline-none md:col-span-3"
+                className="min-h-24 rounded-xl border border-[#e5e5e5] bg-[#f7f7f7] px-3 py-2 text-sm outline-none md:col-span-3"
               />
 
               <div className="flex flex-wrap gap-2 md:col-span-6">
@@ -869,7 +869,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
                   name="status"
                   value="saved"
                   type="submit"
-                  className="rounded-2xl bg-[#4a3c40] px-4 py-2 text-xs font-black text-white"
+                  className="rounded-2xl bg-[#171717] px-4 py-2 text-xs font-black text-white"
                 >
                   저장완료
                 </button>
@@ -877,7 +877,7 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
                   name="status"
                   value="draft"
                   type="submit"
-                  className="rounded-2xl border border-[#e8d4da] bg-white px-4 py-2 text-xs font-black text-[#8f6270]"
+                  className="rounded-2xl border border-[#e5e5e5] bg-white px-4 py-2 text-xs font-black text-[#171717]"
                 >
                   정리중 저장
                 </button>
@@ -886,16 +886,16 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
           </details>
         </section>
 
-        <section className="rounded-[2rem] border border-[#ead9de] bg-white p-6 shadow-sm">
+        <section className="rounded-[2rem] border border-[#e5e5e5] bg-white p-6 shadow-sm">
           <div className="mb-5">
             <h2 className="text-xl font-black">누적 기록</h2>
-            <p className="mt-1 text-sm text-[#8b767c]">
+            <p className="mt-1 text-sm text-[#525252]">
               저장한 기록은 여기서 계속 수정하고 보완할 수 있어요.
             </p>
           </div>
 
           {portfolioRecords.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-[#e5cfd6] bg-[#fdf9fa] px-5 py-7 text-sm font-semibold text-[#9a838b]">
+            <div className="rounded-3xl border border-dashed border-[#e5e5e5] bg-[#f7f7f7] px-5 py-7 text-sm font-semibold text-[#525252]">
               아직 저장된 생기부/학종 기록이 없어요.
             </div>
           ) : (
@@ -903,13 +903,13 @@ export default async function StudentPortfolioPage({ params }: PageProps) {
               {termGroups.map(([term, records]) => (
                 <div
                   key={term}
-                  className="rounded-[1.75rem] border border-[#ead9de] bg-[#fffafb] p-4"
+                  className="rounded-[1.75rem] border border-[#e5e5e5] bg-[#f5f5f5] p-4"
                 >
                   <div className="mb-3 flex items-center justify-between gap-3">
-                    <h3 className="text-base font-black text-[#3f3437]">
+                    <h3 className="text-base font-black text-[#171717]">
                       🎒 {term}
                     </h3>
-                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#9f5264]">
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#171717]">
                       {records.length}개
                     </span>
                   </div>

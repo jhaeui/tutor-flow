@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import StudyTimer from "@/components/StudyTimer";
 import StudyPlannerBoard from "@/components/StudyPlannerBoard";
+import StudentStudyTaskForm, { type StudyTaskOption } from "@/components/StudentStudyTaskForm";
+import LogoutButton from "@/components/LogoutButton";
 
 const SUBJECTS = ["국어", "영어", "수학", "사회", "과학", "한국사", "기타"];
 const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
@@ -19,9 +21,10 @@ const TAB_ITEMS = [
 const PERFORMANCE_SUBJECTS = ["선택안함", "국어", "영어", "수학", "사회", "과학", "한국사", "자율", "진로", "동아리", "직접입력"];
 const PERFORMANCE_STATUS_LABELS: Record<string, string> = { not_started: "미완료", in_progress: "진행중", done: "완성" };
 const STATUS_LABELS: Record<string, string> = { not_started: "미완료", in_progress: "진행중", done: "완료", review: "복습", homework: "숙제", planned: "예정", deferred: "미뤄짐" };
-const SELF_STUDY_STATUS_LABELS: Record<string, string> = { not_started: "○", in_progress: "△", done: "×", deferred: "↗" };
+const SELF_STUDY_STATUS_LABELS: Record<string, string> = { not_started: "X", in_progress: "△", done: "✓", deferred: "↗" };
 const SELF_STUDY_STATUS_TEXT: Record<string, string> = { not_started: "미완료", in_progress: "진행중", done: "완료", deferred: "미루기" };
 const APP_FONT = "ui-rounded, Pretendard, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif";
+const ACADEMY_HOMEWORK_MARKER = "[학원숙제]";
 
 const SUBJECT_STYLES: Record<string, { bg: string; soft: string; text: string; border: string; hex: string }> = {
   국어: { bg: "bg-[#dbeafe]", soft: "bg-[#f8fafc]", text: "text-[#2563eb]", border: "border-[#93c5fd]", hex: "#93c5fd" },
@@ -116,6 +119,7 @@ function addDaysText(dateText: string, days: number) { const date = new Date(`${
 function minDateText(...dates: string[]) { return dates.reduce((min, date) => (date < min ? date : min), dates[0]); }
 function maxDateText(...dates: string[]) { return dates.reduce((max, date) => (date > max ? date : max), dates[0]); }
 function daysUntilDue(dateText?: string | null) { if (!dateText) return null; const today = new Date(`${getTodayText()}T00:00:00+09:00`); const due = new Date(`${dateText}T00:00:00+09:00`); if (Number.isNaN(due.getTime())) return null; return Math.round((due.getTime() - today.getTime()) / 86400000); }
+function homeworkUrgencyIcon(dateText?: string | null) { return daysUntilDue(dateText) === 1 ? "🚨 " : ""; }
 function ddayLabel(dateText?: string | null) { const diff = daysUntilDue(dateText); if (diff === null) return "D-day 없음"; if (diff === 0) return "D-Day"; if (diff > 0) return `D-${diff}`; return `D+${Math.abs(diff)}`; }
 function urgentLabel(dateText?: string | null) { const diff = daysUntilDue(dateText); if (diff === null) return ""; if (diff === 0) return "오늘"; if (diff === 1) return "내일"; if (diff < 0) return "지남"; if (diff <= 7) return `${diff}일 남음`; return ""; }
 function formatDate(dateText?: string | null) { if (!dateText) return "날짜 미정"; const date = new Date(`${dateText}T00:00:00+09:00`); if (Number.isNaN(date.getTime())) return dateText; return date.toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit", weekday: "short" }); }
@@ -128,19 +132,67 @@ function studySubjectTotals(sessions: StudyTimeSession[]) { const map = new Map<
 function parseWeeklyPlan(value: unknown): { blocks: WeeklyPlanBlock[] } { if (!value || typeof value !== "object" || Array.isArray(value)) return { blocks: [] }; const raw = value as Record<string, any>; if (Array.isArray(raw.blocks)) return { blocks: raw.blocks.filter((b) => b && b.day && b.start && b.end && b.category).map((b) => ({ id: String(b.id || `${b.day}-${b.start}-${b.end}`), day: String(b.day), start: normalizeTime(b.start) || String(b.start), end: normalizeTime(b.end) || String(b.end), category: String(b.category) === "개인공부" ? "자습" : String(b.category), subject: b.subject ? String(b.subject) : null, customSubject: b.customSubject ? String(b.customSubject) : null, memo: b.memo ? String(b.memo) : null })) }; return { blocks: [] }; }
 function weeklyLabel(block: WeeklyPlanBlock) { const subject = block.subject === "직접입력" ? block.customSubject || "직접입력" : block.subject || ""; return [block.category, subject, block.memo].filter(Boolean).join(" · "); }
 function statusChip(status?: string | null) { if (status === "done" || status === "완료" || status === "완성") return "bg-[#f3f4f6] text-[#111827] border-[#d1d5db]"; if (status === "in_progress" || status === "진행중") return "bg-white text-[#111827] border-[#d1d5db]"; if (status === "homework" || status === "숙제") return "bg-[#f8fafc] text-[#334155] border-[#cbd5e1]"; if (status === "planned" || status === "예정") return "bg-[#f8fafc] text-[#475569] border-[#cbd5e1]"; if (status === "review" || status === "복습") return "bg-[#f9fafb] text-[#4b5563] border-[#d1d5db]"; return "bg-white text-[#6b7280] border-[#e5e7eb]"; }
-function selfStudyChip(status?: string | null) { if (status === "done") return "border-[#111827] bg-[#111827] text-white"; if (status === "in_progress") return "border-[#9ca3af] bg-white text-[#111827]"; if (status === "deferred") return "border-[#9ca3af] bg-[#f3f4f6] text-[#111827]"; return "border-[#d1d5db] bg-white text-[#6b7280]"; }
+function selfStudyChip(status?: string | null) { if (status === "done") return "border-[#22c55e] bg-[#dcfce7] text-[#166534]"; if (status === "in_progress") return "border-[#fb923c] bg-[#ffedd5] text-[#9a3412]"; if (status === "deferred") return "border-[#9ca3af] bg-[#f3f4f6] text-[#111827]"; return "border-[#d1d5db] bg-white text-[#6b7280]"; }
+function subjectHomeworkChip(subject?: string | null) { const style = SUBJECT_STYLES[subject || "기타"] || SUBJECT_STYLES["기타"]; return `${style.border} ${style.bg} ${style.text}`; }
 function performanceStatusChip(status?: string | null) { if (status === "done") return "bg-[#111827] text-white"; if (status === "in_progress") return "bg-[#f3f4f6] text-[#111827]"; return "bg-white text-[#6b7280]"; }
 function finalPerformanceSubject(subject: string, customSubject: string) { const cleanSubject = subject.trim(); const cleanCustomSubject = customSubject.trim(); if (cleanSubject === "직접입력") return cleanCustomSubject || "선택안함"; if (!cleanSubject || cleanSubject === "선택안함") return "선택안함"; return cleanSubject; }
 function examProgressScopeTitle(row: ExamProgress) { const chunks = [row.major_unit || null, row.unit_name && !sameScopeText(row.major_unit, row.unit_name) ? row.unit_name : null].filter(Boolean); return chunks.length ? chunks.join(" · ") : row.unit_name || "범위명 없음"; }
 function examProgressFullTitle(row: ExamProgress) { const chunks = [row.publisher ? `[${row.publisher}]` : null, row.material_name || null, row.major_unit || null, row.unit_name && !sameScopeText(row.major_unit, row.unit_name) ? row.unit_name : null].filter(Boolean); return chunks.length ? chunks.join(" · ") : row.unit_name || "범위명 없음"; }
 function makeDateFromDayTime(day: string, time: string) { const now = getNowKst(); const targetDay = DAY_INDEX[day]; if (targetDay === undefined) return null; const [hourText, minuteText] = normalizeTime(time).split(":"); const hour = Number(hourText || 0); const minute = Number(minuteText || 0); let diff = targetDay - now.getDay(); if (diff < 0) diff += 7; const target = new Date(now); target.setDate(now.getDate() + diff); target.setHours(hour, minute, 0, 0); if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 7); return target; }
 function formatNextLeftText(target: Date) { const now = getNowKst(); const diffMs = target.getTime() - now.getTime(); const totalMinutes = Math.max(Math.round(diffMs / 60000), 0); const days = Math.floor(totalMinutes / 1440); const hours = Math.floor((totalMinutes % 1440) / 60); const minutes = totalMinutes % 60; if (days > 0) return `${days}일 ${hours}시간 후`; if (hours > 0) return `${hours}시간 ${minutes}분 후`; return `${minutes}분 후`; }
-function getNextLessonInfo(lessonTimes: LessonTime[], events: StudentEvent[]): NextLessonInfo | null { const eventLessons = events.filter((event) => { const type = String(event.event_type || ""); const title = String(event.title || ""); return type.includes("수업") || type.includes("보강") || title.includes("수업") || title.includes("보강"); }).map((event) => { const time = normalizeTime(event.event_time) || "00:00"; const target = new Date(`${event.event_date}T${time}:00+09:00`); return { target, info: { dateText: formatDate(event.event_date), timeText: normalizeTime(event.event_time) || "시간 미정", leftText: formatNextLeftText(target), memo: event.memo || event.title } as NextLessonInfo }; }).filter((item) => !Number.isNaN(item.target.getTime()) && item.target.getTime() > getNowKst().getTime()); const fixedLessons = lessonTimes.map((lesson) => { const target = makeDateFromDayTime(lesson.day_of_week, lesson.start_time); if (!target) return null; return { target, info: { dateText: `${lesson.day_of_week}요일`, timeText: normalizeTime(lesson.start_time), leftText: formatNextLeftText(target), memo: lesson.memo } as NextLessonInfo }; }).filter(Boolean) as { target: Date; info: NextLessonInfo }[]; const all = [...eventLessons, ...fixedLessons].sort((a, b) => a.target.getTime() - b.target.getTime()); return all[0]?.info || null; }
+function getRemainingMonthsUntilTwenty(age?: string | number | null) { if (age === null || age === undefined || age === "") return null; const match = String(age).match(/\d+/); if (!match) return null; const currentAge = Number(match[0]); if (!currentAge || Number.isNaN(currentAge)) return null; const currentMonth = Number(new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric" }).format(new Date()).replace(/\D/g, "")); return Math.max((20 - currentAge) * 12 - currentMonth, 0); }
+function getGraduationGaugePercent(age?: string | number | null) { const remainingMonths = getRemainingMonthsUntilTwenty(age); if (remainingMonths === null) return 0; const totalMonths = 36; const elapsedMonths = Math.min(Math.max(totalMonths - remainingMonths, 0), totalMonths); return Math.round((elapsedMonths / totalMonths) * 100); }
+function getGraduationLeftLabel(age?: string | number | null) { const remainingMonths = getRemainingMonthsUntilTwenty(age); if (remainingMonths === null) return "나이 입력 필요"; if (remainingMonths <= 0) return "졸업 시점"; const years = Math.floor(remainingMonths / 12); const months = remainingMonths % 12; if (years > 0 && months > 0) return `${years}년 ${months}개월 남음`; if (years > 0) return `${years}년 남음`; return `${months}개월 남음`; }
+function getNextLessonInfo(lessonTimes: LessonTime[], events: StudentEvent[]): NextLessonInfo | null {
+  const classEvents = events
+    .filter((event) => {
+      const type = String(event.event_type || "");
+      const title = String(event.title || "");
+      return type.includes("수업") || type.includes("보강") || title.includes("수업") || title.includes("보강");
+    })
+    .map((event) => {
+      const time = normalizeTime(event.event_time) || "00:00";
+      const target = new Date(`${event.event_date}T${time}:00+09:00`);
+      return { target, info: { dateText: formatDate(event.event_date), timeText: normalizeTime(event.event_time) || "시간 미정", leftText: formatNextLeftText(target), memo: event.memo || event.title } as NextLessonInfo };
+    })
+    .filter((item) => !Number.isNaN(item.target.getTime()) && item.target.getTime() > getNowKst().getTime());
+
+  const fixedLessons = lessonTimes
+    .map((lesson) => {
+      const target = makeDateFromDayTime(lesson.day_of_week, lesson.start_time);
+      if (!target) return null;
+      return { target, info: { dateText: `${lesson.day_of_week}요일`, timeText: normalizeTime(lesson.start_time), leftText: formatNextLeftText(target), memo: lesson.memo } as NextLessonInfo };
+    })
+    .filter(Boolean) as { target: Date; info: NextLessonInfo }[];
+
+  const all = [...classEvents, ...fixedLessons].sort((a, b) => a.target.getTime() - b.target.getTime());
+  return all[0]?.info || null;
+}
+function getNextWeeklyScheduleInfo(blocks: WeeklyPlanBlock[]): NextLessonInfo | null {
+  const upcoming = blocks
+    .map((block) => {
+      const target = makeDateFromDayTime(block.day, block.start);
+      if (!target) return null;
+      return {
+        target,
+        info: {
+          dateText: `${block.day}요일`,
+          timeText: `${normalizeTime(block.start)}${normalizeTime(block.end) ? `-${normalizeTime(block.end)}` : ""}`,
+          leftText: formatNextLeftText(target),
+          memo: weeklyLabel(block) || block.category,
+        } as NextLessonInfo,
+      };
+    })
+    .filter(Boolean) as { target: Date; info: NextLessonInfo }[];
+
+  return upcoming.sort((a, b) => a.target.getTime() - b.target.getTime())[0]?.info || null;
+}
 function getUpcomingPerformance(tasks: PerformanceTask[]) { return tasks.filter((task) => task.status !== "done" && task.due_date).filter((task) => { const diff = daysUntilDue(task.due_date); return diff !== null && diff >= 0 && diff <= 14; }).sort((a, b) => String(a.due_date).localeCompare(String(b.due_date)))[0]; }
 function parseMonthParam(month?: string) { const now = getNowKst(); if (!month || !/^\d{4}-\d{2}$/.test(month)) return { year: now.getFullYear(), month: now.getMonth() + 1 }; const [year, m] = month.split("-").map(Number); return { year, month: m }; }
 function monthText(year: number, month: number) { return `${year}-${String(month).padStart(2, "0")}`; }
 function addMonths(year: number, month: number, diff: number) { const date = new Date(year, month - 1 + diff, 1); return monthText(date.getFullYear(), date.getMonth() + 1); }
 function getMonthDays(monthParam?: string) { const parsed = parseMonthParam(monthParam); const first = new Date(parsed.year, parsed.month - 1, 1); const last = new Date(parsed.year, parsed.month, 0); const days: { dateText: string; day: number; isToday: boolean }[] = []; for (let d = 1; d <= last.getDate(); d += 1) { const date = new Date(parsed.year, parsed.month - 1, d); const dateText = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(date); days.push({ dateText, day: d, isToday: dateText === getTodayText() }); } return { ...parsed, firstWeekday: first.getDay(), days, currentMonth: monthText(parsed.year, parsed.month), prevMonth: addMonths(parsed.year, parsed.month, -1), nextMonth: addMonths(parsed.year, parsed.month, 1) }; }
+function getWeekDays(dateText: string) { const base = new Date(`${dateText}T00:00:00+09:00`); const mondayOffset = base.getDay() === 0 ? -6 : 1 - base.getDay(); return DAYS.map((day, index) => { const date = new Date(base); date.setDate(base.getDate() + mondayOffset + index); const itemDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(date); return { dateText: itemDate, day, dayNumber: Number(itemDate.slice(-2)), isToday: itemDate === getTodayText() }; }); }
 function isClassEvent(event: StudentEvent) { const type = String(event.event_type || ""); const title = String(event.title || ""); return type.includes("수업") || type.includes("보강") || title.includes("수업") || title.includes("보강"); }
 
 const WEEKDAYS_BY_DATE = ["일", "월", "화", "수", "목", "금", "토"];
@@ -384,6 +436,16 @@ function isClassCalendarEvent(event: CalendarEvent) {
 
 
 function studentAvatarUrl(student: any) { return student.avatar_url || student.avatar || student.profile_image_url || student.photo_url || student.image_url || ""; }
+function isAcademyHomework(task: SelfStudyTask) { return String(task.memo || "").startsWith(ACADEMY_HOMEWORK_MARKER); }
+function cleanStudyTaskMemo(task: SelfStudyTask) { return String(task.memo || "").replace(ACADEMY_HOMEWORK_MARKER, "").trim(); }
+function groupSelfStudyTasksBySubject(tasks: SelfStudyTask[]) {
+  const map = new Map<string, SelfStudyTask[]>();
+  tasks.forEach((task) => {
+    const subject = task.subject || "기타";
+    map.set(subject, [...(map.get(subject) || []), task]);
+  });
+  return Array.from(map.entries()).map(([subject, rows]) => ({ subject, rows }));
+}
 
 function parseHomeworkUnitAndNumber(task: HomeworkTask) {
   const unitName = task.unitName || "";
@@ -436,7 +498,7 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
     supabase.from("student_performance_tasks").select("*").eq("student_id", studentId).neq("status", "done").order("due_date", { ascending: true }).order("due_time", { ascending: true }).order("created_at", { ascending: false }).limit(200),
     supabase.from("student_lesson_times").select("*").eq("student_id", studentId).order("created_at", { ascending: true }),
     supabase.from("student_events").select("*").eq("student_id", studentId).gte("event_date", calendarStart).lte("event_date", upcomingEnd).order("event_date", { ascending: true }).order("event_time", { ascending: true }).limit(200),
-    supabase.from("student_self_study_tasks").select("*").eq("student_id", studentId).neq("status", "done").order("due_date", { ascending: true }).order("created_at", { ascending: false }).limit(200),
+    supabase.from("student_self_study_tasks").select("*").eq("student_id", studentId).order("due_date", { ascending: true }).order("created_at", { ascending: false }).limit(200),
     supabase.from("student_study_time_sessions").select("*").eq("student_id", studentId).order("created_at", { ascending: false }).limit(100),
     supabase.from("student_homework_checks").select("*").eq("student_id", studentId).limit(500),
     supabase.from("student_study_goals").select("*").eq("student_id", studentId).eq("goal_date", today).limit(1),
@@ -460,7 +522,14 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
   const todayStudySessions = studyTimeSessions.filter((row) => row.studied_at === getTodayText() && row.started_at && row.ended_at);
   const todayStudyTotals = studySubjectTotals(todayStudySessions);
   const todayStudyTotalSeconds = todayStudyTotals.reduce((sum, item) => sum + item.seconds, 0);
-  const selectedSelfStudyTasks = selfStudyTasks.filter((task) => (task.due_date || getTodayText()) === selectedDate);
+  const selectedSelfStudyTasks = selfStudyTasks
+    .filter((task) => (task.due_date || getTodayText()) === selectedDate)
+    .sort((a, b) => {
+      const aDone = a.status === "done" ? 1 : 0;
+      const bDone = b.status === "done" ? 1 : 0;
+      if (aDone !== bDone) return aDone - bDone;
+      return String(a.title || "").localeCompare(String(b.title || ""));
+    });
   const nextLesson = getNextLessonInfo(lessonTimes, events);
   const upcomingPerformance = performanceTasks.filter((task) => task.status !== "done" && task.due_date).filter((task) => { const diff = daysUntilDue(task.due_date); return diff !== null && diff >= 0 && diff <= 14; }).sort((a, b) => String(a.due_date).localeCompare(String(b.due_date)))[0];
   const visiblePerformanceTasks = performanceTasks;
@@ -473,15 +542,82 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
   const groupedHomeworkTasks = groupHomeworkTasks(Array.from(homeworkTaskMap.values()));
   const totalHomeworkCount = groupedHomeworkTasks.reduce((sum, group) => sum + group.numbers.length, 0);
   const checkedHomeworkCount = groupedHomeworkTasks.reduce((sum, group) => sum + group.numbers.filter((item) => checkedHomeworkSet.has(item.key)).length, 0);
+  const academyHomeworkTasks = selfStudyTasks
+    .filter(isAcademyHomework)
+    .filter((task) => !task.due_date || task.due_date >= today)
+    .sort((a, b) => {
+      const dateCompare = String(a.due_date || "9999-12-31").localeCompare(String(b.due_date || "9999-12-31"));
+      if (dateCompare !== 0) return dateCompare;
+      const aDone = a.status === "done" ? 1 : 0;
+      const bDone = b.status === "done" ? 1 : 0;
+      if (aDone !== bDone) return aDone - bDone;
+      return String(a.title || "").localeCompare(String(b.title || ""));
+    });
+  const academyHomeworkGroups = groupSelfStudyTasksBySubject(academyHomeworkTasks);
+  const selectedSelfStudyTaskGroups = groupSelfStudyTasksBySubject(selectedSelfStudyTasks);
+  const homeworkOptions: StudyTaskOption[] = [
+    ...groupedHomeworkTasks.flatMap((group) =>
+      group.numbers.map((item) => ({
+        label: `선생님 숙제 · ${group.subject} · ${item.label}`,
+        subject: group.subject,
+        title: [group.scopeTitle, group.displayUnit, item.label, group.stepName]
+          .filter(Boolean)
+          .join(" "),
+      })),
+    ),
+    ...academyHomeworkTasks.map((task) => ({
+      label: `학원 숙제 · ${task.subject || "기타"} · ${task.title}`,
+      subject: task.subject || "기타",
+      title: task.title,
+    })),
+  ];
 
   const examSummaryBySubject = Object.entries(examRows.reduce<Record<string, ExamProgress[]>>((acc, row) => { const key = `${row.subject}|||${row.publisher || ""}|||${row.material_name || ""}`; if (!acc[key]) acc[key] = []; acc[key].push(row); return acc; }, {})).map(([key, rows]) => { const [subject, publisher, materialName] = key.split("|||"); const allStatuses = rows.flatMap((row) => getVisibleStatusEntries(parseStatuses(row.statuses))); const total = allStatuses.length; const done = allStatuses.filter(([, status]) => status === "done" || status === "review").length; return { key, subject, publisher, materialName, rows, total, done, percent: total ? Math.round((done / total) * 100) : 0 }; });
   const weeklyBlocks = parseWeeklyPlan(student.weekly_plan).blocks.sort((a, b) => { const dayDiff = DAYS.indexOf(a.day) - DAYS.indexOf(b.day); if (dayDiff !== 0) return dayDiff; return String(a.start).localeCompare(String(b.start)); });
+  const nextWeeklySchedule = getNextWeeklyScheduleInfo(weeklyBlocks);
+  const weekDays = getWeekDays(today);
+  const weekStart = weekDays[0]?.dateText || today;
+  const weekEnd = weekDays[weekDays.length - 1]?.dateText || today;
+  const weeklyHomeworkItems = [
+    ...groupedHomeworkTasks.flatMap((group) => {
+      const dueDate = group.rows.map((row) => row.lessonDate).filter(Boolean).sort()[0];
+      if (!dueDate) return [];
+      const doneCount = group.numbers.filter((item) => checkedHomeworkSet.has(item.key)).length;
+      const isDone = doneCount >= group.numbers.length;
+      return [{
+        id: `teacher-homework-${group.key}`,
+        date: dueDate,
+        subject: group.subject,
+        title: `${group.scopeTitle} ${group.displayUnit}`.trim(),
+        subtitle: `선생님 숙제 · ${group.subject} · ${group.numbers.length}개`,
+        done: isDone,
+      }];
+    }),
+    ...academyHomeworkTasks.map((task) => ({
+      id: `academy-homework-${task.id}`,
+      date: task.due_date || today,
+      subject: task.subject || "기타",
+      title: task.title,
+      subtitle: `학원 숙제 · ${task.subject || "기타"}`,
+      done: task.status === "done",
+    })),
+  ]
+    .filter((item) => item.date >= weekStart && item.date <= weekEnd)
+    .sort((a, b) => {
+      const dateCompare = a.date.localeCompare(b.date);
+      if (dateCompare !== 0) return dateCompare;
+      if (Number(a.done) !== Number(b.done)) return Number(a.done) - Number(b.done);
+      return a.title.localeCompare(b.title);
+    });
 
   async function toggleHomeworkCheck(formData: FormData) { "use server"; const actionSupabase = await createSupabaseServerClient(); const key = String(formData.get("homework_key") || "").trim(); const isChecked = String(formData.get("is_checked") || "") === "true"; if (!key) return; if (isChecked) { const { error } = await actionSupabase.from("student_homework_checks").delete().eq("student_id", studentId).eq("homework_key", key); if (error) throw new Error(error.message); } else { const { error } = await actionSupabase.from("student_homework_checks").upsert({ student_id: studentId, homework_key: key, is_checked: true, checked_at: new Date().toISOString() }, { onConflict: "student_id,homework_key" }); if (error) throw new Error(error.message); } revalidatePath("/student"); }
   async function addPerformanceTask(formData: FormData) { "use server"; const actionSupabase = await createSupabaseServerClient(); const subject = String(formData.get("subject") || "").trim(); const customSubject = String(formData.get("custom_subject") || "").trim(); const finalSubject = finalPerformanceSubject(subject, customSubject); const title = String(formData.get("title") || "").trim(); const dueDate = String(formData.get("due_date") || "").trim(); const dueTime = String(formData.get("due_time") || "").trim(); const memo = String(formData.get("memo") || "").trim(); if (!title) throw new Error("수행평가 이름은 꼭 필요해."); const { data: performance, error } = await actionSupabase.from("student_performance_tasks").insert({ student_id: studentId, subject: finalSubject, title, due_date: dueDate || null, due_time: dueTime || null, status: "not_started", memo: memo || null }).select("id").single(); if (error) throw new Error(error.message); if (performance && dueDate) await actionSupabase.from("student_events").insert({ student_id: studentId, event_date: dueDate, event_time: dueTime || null, subject: finalSubject === "선택안함" ? null : finalSubject, title, event_type: "수행평가", memo: memo || null, is_auto: true, source_type: "performance_task", source_id: performance.id }); revalidatePath("/student"); }
   async function updatePerformanceStatus(formData: FormData) { "use server"; const actionSupabase = await createSupabaseServerClient(); const taskId = String(formData.get("task_id") || ""); const status = String(formData.get("status") || "not_started"); if (!taskId) return; const { error } = await actionSupabase.from("student_performance_tasks").update({ status }).eq("id", taskId).eq("student_id", studentId); if (error) throw new Error(error.message); revalidatePath("/student"); }
   async function addSelfStudyTask(formData: FormData) { "use server"; const actionSupabase = await createSupabaseServerClient(); const subject = String(formData.get("subject") || "영어").trim(); const title = String(formData.get("title") || "").trim(); const dueDate = String(formData.get("due_date") || selectedDate).trim(); const memo = String(formData.get("memo") || "").trim(); if (!title) throw new Error("공부할 내용을 입력해줘."); const { error } = await actionSupabase.from("student_self_study_tasks").insert({ student_id: studentId, subject, title, due_date: dueDate || selectedDate, status: "not_started", memo: memo || null }); if (error) throw new Error(error.message); revalidatePath("/student"); }
+  async function addAcademyHomework(formData: FormData) { "use server"; const actionSupabase = await createSupabaseServerClient(); const subject = String(formData.get("subject") || "기타").trim(); const title = String(formData.get("title") || "").trim(); const dueDate = String(formData.get("due_date") || selectedDate).trim(); const memo = String(formData.get("memo") || "").trim(); if (!title) throw new Error("숙제범위를 입력해줘."); const { error } = await actionSupabase.from("student_self_study_tasks").insert({ student_id: studentId, subject, title, due_date: dueDate || selectedDate, status: "not_started", memo: `${ACADEMY_HOMEWORK_MARKER}${memo ? ` ${memo}` : ""}` }); if (error) throw new Error(error.message); revalidatePath("/student"); }
   async function updateSelfStudyStatus(formData: FormData) { "use server"; const actionSupabase = await createSupabaseServerClient(); const taskId = String(formData.get("task_id") || ""); const status = String(formData.get("status") || "not_started"); const title = String(formData.get("title") || "").trim(); const subject = String(formData.get("subject") || "기타").trim(); const memo = String(formData.get("memo") || "").trim(); const dueDate = String(formData.get("due_date") || getTodayText()).trim(); if (!taskId) return; const { error } = await actionSupabase.from("student_self_study_tasks").update({ status }).eq("id", taskId).eq("student_id", studentId); if (error) throw new Error(error.message); if (status === "deferred") { const { error: insertError } = await actionSupabase.from("student_self_study_tasks").insert({ student_id: studentId, subject, title, due_date: nextDateText(dueDate), status: "not_started", memo: memo || null }); if (insertError) throw new Error(insertError.message); } revalidatePath("/student"); }
+  async function updateSelfStudyTask(formData: FormData) { "use server"; const actionSupabase = await createSupabaseServerClient(); const taskId = String(formData.get("task_id") || ""); const subject = String(formData.get("subject") || "기타").trim(); const title = String(formData.get("title") || "").trim(); const dueDate = String(formData.get("due_date") || selectedDate).trim(); const memo = String(formData.get("memo") || "").trim(); const isAcademy = String(formData.get("is_academy") || "") === "true"; if (!taskId || !title) return; const finalMemo = isAcademy ? `${ACADEMY_HOMEWORK_MARKER}${memo ? ` ${memo}` : ""}` : memo || null; const { error } = await actionSupabase.from("student_self_study_tasks").update({ subject, title, due_date: dueDate || selectedDate, memo: finalMemo }).eq("id", taskId).eq("student_id", studentId); if (error) throw new Error(error.message); revalidatePath("/student"); }
+  async function deleteSelfStudyTask(formData: FormData) { "use server"; const actionSupabase = await createSupabaseServerClient(); const taskId = String(formData.get("task_id") || ""); if (!taskId) return; const { error } = await actionSupabase.from("student_self_study_tasks").delete().eq("id", taskId).eq("student_id", studentId); if (error) throw new Error(error.message); revalidatePath("/student"); }
   async function saveStudyTime(formData: FormData) { "use server"; const actionSupabase = await createSupabaseServerClient(); const subject = String(formData.get("subject") || "영어").trim(); const title = String(formData.get("title") || "").trim(); const durationSeconds = Number(formData.get("duration_seconds") || 0); const startedAt = String(formData.get("started_at") || "").trim(); const endedAt = String(formData.get("ended_at") || "").trim(); if (!durationSeconds || durationSeconds < 10 || !startedAt || !endedAt) return; const { error } = await actionSupabase.from("student_study_time_sessions").insert({ student_id: studentId, subject, title: title || null, duration_seconds: durationSeconds, studied_at: getTodayText(), started_at: startedAt, ended_at: endedAt }); if (error) throw new Error(error.message); revalidatePath("/student"); }
   async function updateStudySession(formData: FormData) { "use server"; const actionSupabase = await createSupabaseServerClient(); const sessionId = String(formData.get("session_id") || ""); const subject = String(formData.get("subject") || "기타"); const title = String(formData.get("title") || "").trim(); if (!sessionId) return; const { error } = await actionSupabase.from("student_study_time_sessions").update({ subject, title: title || null }).eq("id", sessionId).eq("student_id", studentId); if (error) throw new Error(error.message); revalidatePath("/student"); }
   async function saveStudyGoal(formData: FormData) { "use server"; const actionSupabase = await createSupabaseServerClient(); const hours = Number(formData.get("goal_hours") || 0); const goalSeconds = Math.max(hours, 0) * 3600; const { error } = await actionSupabase.from("student_study_goals").upsert({ student_id: studentId, goal_date: getTodayText(), goal_seconds: goalSeconds }, { onConflict: "student_id,goal_date" }); if (error) throw new Error(error.message); revalidatePath("/student"); }
@@ -491,7 +627,8 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
   async function updateStudentEvent(formData: FormData) { "use server"; const actionSupabase = await createSupabaseServerClient(); const id = String(formData.get("event_id") || ""); const title = String(formData.get("title") || "").trim(); const eventDate = String(formData.get("event_date") || "").trim(); const eventTime = String(formData.get("event_time") || "").trim(); const eventType = String(formData.get("event_type") || "개인일정").trim(); const memo = String(formData.get("memo") || "").trim(); if (!id || !title || !eventDate || eventType.includes("수업") || eventType.includes("보강")) return; const original = events.find((event) => event.id === id); if (!original || isClassEvent(original)) return; const { error } = await actionSupabase.from("student_events").update({ title, event_date: eventDate, event_time: eventTime || null, event_type: eventType, memo: memo || null }).eq("id", id).eq("student_id", studentId); if (error) throw new Error(error.message); revalidatePath("/student"); }
   async function deleteStudentEvent(formData: FormData) { "use server"; const actionSupabase = await createSupabaseServerClient(); const id = String(formData.get("event_id") || ""); if (!id) return; const original = events.find((event) => event.id === id); if (!original || isClassEvent(original)) return; const { error } = await actionSupabase.from("student_events").delete().eq("id", id).eq("student_id", studentId); if (error) throw new Error(error.message); revalidatePath("/student"); }
 
-  const avatar = studentAvatarUrl(student);
+  const graduationPercent = getGraduationGaugePercent(student.age);
+  const graduationLeftLabel = getGraduationLeftLabel(student.age);
   const calendarEvents = getCombinedCalendarEvents(
     lessonTimes,
     lessonRecords,
@@ -508,18 +645,18 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
   const personalEventDates = new Set(calendarEvents.filter((event) => !isClassCalendarEvent(event)).map((event) => event.event_date));
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7] px-3 pb-24 pt-3 text-[#111827]" style={{ fontFamily: APP_FONT }}>
-      <div className="mx-auto flex w-full max-w-[390px] flex-col gap-3">
-        <section className="rounded-[28px] border border-[#e5e7eb] bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#f3f4f6] text-xl font-bold text-[#111827]">
-                {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : String(student.name || "?").slice(0, 1)}
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-[#6b7280]">오늘</p>
-                <h1 className="whitespace-nowrap text-base font-bold tracking-[-0.04em] text-[#111827]">{formatHeaderDate(getTodayText())}</h1>
-              </div>
+    <main className="min-h-screen bg-[#f5f5f7] px-2 pb-20 pt-2 text-[#111827]" style={{ fontFamily: APP_FONT }}>
+      <div className="mx-auto flex w-full max-w-[390px] flex-col gap-2">
+        <section className="rounded-[22px] border border-[#e5e7eb] bg-white p-3 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-semibold text-[#6b7280]">졸업까지</p>
+                  <p className="text-[11px] font-bold text-[#111827]">{graduationLeftLabel}</p>
+                </div>
+                <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[#e5e7eb]">
+                  <div className="h-full bg-[#111827]" style={{ width: `${graduationPercent}%` }} />
+                </div>
             </div>
             <div className="shrink-0 rounded-[16px] bg-[#f3f4f6] px-2.5 py-1.5 text-right">
               <p className="text-[10px] font-bold text-[#6b7280]">시험</p>
@@ -528,41 +665,132 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="rounded-[22px] bg-[#f9fafb] p-3">
+          <div className="mt-2 grid grid-cols-2 gap-1.5">
+            <div className="rounded-[16px] bg-[#f9fafb] p-2.5">
               <p className="text-[10px] font-bold text-[#6b7280]">다음 수업</p>
               <p className="mt-1 truncate text-[13px] font-bold text-[#111827]">{nextLesson ? `${nextLesson.dateText} ${nextLesson.timeText}` : "등록 없음"}</p>
               <p className="mt-1 truncate text-[9px] font-semibold text-[#6b7280]">{nextLesson ? nextLesson.leftText : "시간표 확인 필요"}</p>
             </div>
-            <div className="rounded-[22px] bg-[#f9fafb] p-3">
-              <p className="text-[10px] font-bold text-[#6b7280]">가까운 수행</p>
-              <p className="mt-1 truncate text-[13px] font-bold text-[#111827]">{upcomingPerformance ? upcomingPerformance.title : "없음"}</p>
-              <p className="mt-1 truncate text-[9px] font-semibold text-[#6b7280]">{upcomingPerformance ? `${formatDate(upcomingPerformance.due_date)} · ${urgentLabel(upcomingPerformance.due_date)}` : "여유 있음"}</p>
+            <div className="rounded-[16px] bg-[#f9fafb] p-2.5">
+              <p className="text-[10px] font-bold text-[#6b7280]">다음 일정</p>
+              <p className="mt-1 truncate text-[13px] font-bold text-[#111827]">{nextWeeklySchedule ? nextWeeklySchedule.memo : "등록 없음"}</p>
+              <p className="mt-1 truncate text-[9px] font-semibold text-[#6b7280]">{nextWeeklySchedule ? `${nextWeeklySchedule.dateText} ${nextWeeklySchedule.timeText}` : "주간시간표 확인 필요"}</p>
+            </div>
+            <div className="col-span-2 rounded-[16px] bg-[#f9fafb] p-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold text-[#6b7280]">다가오는 수행</p>
+                  <p className="mt-1 truncate text-[13px] font-bold text-[#111827]">{upcomingPerformance ? upcomingPerformance.title : "없음"}</p>
+                </div>
+                <p className="shrink-0 text-right text-[10px] font-semibold text-[#6b7280]">
+                  {upcomingPerformance ? `${formatDate(upcomingPerformance.due_date)} · ${urgentLabel(upcomingPerformance.due_date)}` : "여유 있음"}
+                </p>
+              </div>
             </div>
           </div>
         </section>
 
-        {activeTab === "home" && (
+        {activeTab === "homework" && (
           <>
             <StudyPlannerBoard sessions={todayStudySessions} totals={todayStudyTotals} totalSeconds={todayStudyTotalSeconds} goalSeconds={goalSeconds} subjects={SUBJECTS} subjectStyles={SUBJECT_STYLES} updateAction={updateStudySession} saveGoalAction={saveStudyGoal} />
             <StudyTimer subjects={SUBJECTS} saveAction={saveStudyTime} />
           </>
         )}
 
-        {activeTab === "homework" && (
+        {activeTab === "home" && (
           <>
-            <section className="rounded-[28px] border border-[#e5e7eb] bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between">
+            <section className="rounded-[22px] border border-[#e5e7eb] bg-white p-3 shadow-sm">
+              <div className="mb-2 flex items-center justify-between">
                 <div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9ca3af]">Study</p><h2 className="text-[15px] font-bold text-[#111827]">선생님이 낸 숙제</h2></div>
                 <span className="rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[11px] font-bold text-[#111827]">{checkedHomeworkCount}/{totalHomeworkCount}</span>
               </div>
               {groupedHomeworkTasks.length === 0 ? <div className="rounded-[20px] border border-dashed border-[#d1d5db] bg-[#f9fafb] p-4 text-xs font-semibold text-[#6b7280]">아직 등록된 숙제가 없어요.</div> : <div className="space-y-2">{groupedHomeworkTasks.map((group) => <div key={group.key} className="rounded-[20px] border border-[#e5e7eb] bg-[#f9fafb] p-3"><div className="flex flex-wrap items-center gap-1.5"><span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-[#6b7280]">{group.subject}</span><span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-[#111827]">{group.stepName}</span><span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-[#6b7280]">{group.numbers.length}개</span></div><p className="mt-2 truncate text-[13px] font-bold text-[#111827]">{group.scopeTitle}</p><p className="truncate text-[12px] font-semibold text-[#6b7280]">{group.displayUnit}</p><div className="mt-2 flex flex-wrap gap-1.5">{group.numbers.map((item) => { const isChecked = checkedHomeworkSet.has(item.key); return <form key={item.key} action={toggleHomeworkCheck}><input type="hidden" name="homework_key" value={item.key}/><input type="hidden" name="is_checked" value={String(isChecked)}/><button type="submit" className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${isChecked ? "border-[#111827] bg-[#111827] text-white line-through" : "border-[#d1d5db] bg-white text-[#374151]"}`}>{isChecked ? "✓ " : ""}{item.label}</button></form>; })}</div></div>)}</div>}
             </section>
 
-            <section className="rounded-[28px] border border-[#e5e7eb] bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-end justify-between gap-2">
+            <section className="rounded-[22px] border border-[#e5e7eb] bg-white p-3 shadow-sm">
+              <div className="mb-2 flex items-center justify-between">
+                <div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9ca3af]">Academy</p><h2 className="text-[15px] font-bold text-[#111827]">학원 숙제</h2></div>
+                <span className="rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[11px] font-bold text-[#111827]">{academyHomeworkTasks.filter((task) => task.status !== "done").length}/{academyHomeworkTasks.length}</span>
+              </div>
+              <details className="mb-2 rounded-[14px] border border-[#e5e7eb] bg-[#f9fafb] px-2.5 py-1.5">
+                <summary className="cursor-pointer list-none text-[11px] font-bold text-[#111827]">+ 학원 숙제 추가</summary>
+                <form action={addAcademyHomework} className="mt-2 grid w-full gap-1.5">
+                  <select name="subject" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none">
+                    {SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                  </select>
+                  <input name="title" placeholder="숙제범위" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none" />
+                  <div className="flex items-center gap-2">
+                    <input type="date" name="due_date" defaultValue={selectedDate} className="min-w-0 flex-1 rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none" />
+                    <span className="shrink-0 text-[11px] font-bold text-[#6b7280]">까지</span>
+                  </div>
+                  <input name="memo" placeholder="메모" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none" />
+                  <button className="w-full rounded-2xl bg-[#111827] px-3 py-2 text-[11px] font-bold text-white">저장</button>
+                </form>
+              </details>
+              {academyHomeworkTasks.length === 0 ? (
+                <div className="rounded-[20px] border border-dashed border-[#d1d5db] bg-[#f9fafb] p-4 text-xs font-semibold text-[#6b7280]">등록된 학원 숙제가 없어요.</div>
+              ) : (
+                <div className="space-y-2">
+                  {academyHomeworkGroups.map((group) => (
+                    <div key={`academy-${group.subject}`} className="rounded-[18px] border border-[#e5e7eb] bg-white p-2">
+                      <div className="mb-2 flex items-center justify-between px-1">
+                        <p className="text-[11px] font-bold text-[#111827]">{group.subject}</p>
+                        <span className="text-[10px] font-semibold text-[#6b7280]">{group.rows.length}개</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {group.rows.map((task) => (
+                    <div key={task.id} className={`rounded-[20px] border border-[#e5e7eb] bg-[#f9fafb] p-3 ${task.status === "done" ? "opacity-60" : ""}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-[13px] font-bold text-[#111827]">{homeworkUrgencyIcon(task.due_date)}{task.title}</p>
+                          <p className="mt-1 text-[11px] font-semibold text-[#6b7280]">{task.subject || "기타"} · {formatDate(task.due_date)}까지</p>
+                          {cleanStudyTaskMemo(task) && <p className="mt-1 text-[10px] font-medium text-[#6b7280]">{cleanStudyTaskMemo(task)}</p>}
+                        </div>
+                        <form action={updateSelfStudyStatus} className="mr-7 shrink-0">
+                          <input type="hidden" name="task_id" value={task.id} />
+                          <input type="hidden" name="status" value={task.status === "done" ? "not_started" : "done"} />
+                          <input type="hidden" name="title" value={task.title} />
+                          <input type="hidden" name="subject" value={task.subject || "기타"} />
+                          <input type="hidden" name="memo" value={task.memo || ""} />
+                          <input type="hidden" name="due_date" value={task.due_date || selectedDate} />
+                          <button className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${task.status === "done" ? "border-[#22c55e] bg-[#dcfce7] text-[#166534]" : "border-[#d1d5db] bg-white text-[#374151]"}`}>
+                            {task.status === "done" ? "✓" : "X"}
+                          </button>
+                        </form>
+                      </div>
+                      <details className="-mt-6 flow-root">
+                        <summary className="ml-auto flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border border-[#d1d5db] bg-white text-[13px] font-bold leading-none text-[#111827]">⋯</summary>
+                        <div className="clear-both mt-2 rounded-[14px] border border-[#111827] bg-[#111827] p-2 shadow-sm">
+                        <form action={updateSelfStudyTask} className="grid gap-1.5">
+                          <input type="hidden" name="task_id" value={task.id} />
+                          <input type="hidden" name="is_academy" value="true" />
+                          <select name="subject" defaultValue={task.subject || "기타"} className="w-full rounded-xl border border-[#d1d5db] bg-white px-2.5 py-2 text-[11px] font-semibold outline-none">
+                            {SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                          </select>
+                          <input name="title" defaultValue={task.title} placeholder="숙제범위" className="w-full rounded-xl border border-[#d1d5db] bg-white px-2.5 py-2 text-[11px] font-semibold outline-none" />
+                          <input type="date" name="due_date" defaultValue={task.due_date || selectedDate} className="w-full rounded-xl border border-[#d1d5db] bg-white px-2.5 py-2 text-[11px] font-semibold outline-none" />
+                          <input name="memo" defaultValue={cleanStudyTaskMemo(task)} placeholder="메모" className="w-full rounded-xl border border-[#d1d5db] bg-white px-2.5 py-2 text-[11px] font-semibold outline-none" />
+                          <button className="rounded-xl bg-[#111827] px-3 py-2 text-[11px] font-bold text-white">저장</button>
+                        </form>
+                        <form action={deleteSelfStudyTask} className="mt-1.5">
+                          <input type="hidden" name="task_id" value={task.id} />
+                          <button className="w-full rounded-xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-bold text-[#6b7280]">삭제</button>
+                        </form>
+                        </div>
+                      </details>
+                    </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-[22px] border border-[#e5e7eb] bg-white p-3 shadow-sm">
+              <div className="mb-2 flex items-end justify-between gap-2">
                 <div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9ca3af]">Planner</p><h2 className="text-[15px] font-bold text-[#111827]">내 스터디플래너</h2><p className="mt-0.5 text-[11px] font-medium text-[#6b7280]">{formatDate(selectedDate)} 기준</p></div>
-                <Link href={`/student?tab=homework&date=${getTodayText()}`} className="rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[10px] font-bold text-[#111827]">오늘</Link>
+                <Link href={`/student?tab=home&date=${getTodayText()}`} className="rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[10px] font-bold text-[#111827]">오늘</Link>
               </div>
               <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {[-3, -2, -1, 0, 1, 2, 3].map((offset) => {
@@ -583,7 +811,7 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
                   return (
                     <Link
                       key={dateText}
-                      href={`/student?tab=homework&date=${dateText}`}
+                      href={`/student?tab=home&date=${dateText}`}
                       className={`shrink-0 rounded-full px-3 py-1.5 text-center text-[11px] font-bold ${
                         selectedDate === dateText
                           ? "bg-[#111827] text-white"
@@ -596,42 +824,12 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
                 })}
               </div>
 
-              <details className="mb-3 rounded-[16px] border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2">
-                <summary className="cursor-pointer list-none text-[11px] font-bold text-[#111827]">
-                  + 항목 추가
-                </summary>
-                <form action={addSelfStudyTask} className="mt-2 grid w-full gap-1.5">
-                  <select
-                    name="subject"
-                    className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"
-                  >
-                    {SUBJECTS.map((subject) => (
-                      <option key={subject} value={subject}>
-                        {subject}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    name="title"
-                    placeholder="예: 영어 단어 Day 1"
-                    className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"
-                  />
-                  <input
-                    type="date"
-                    name="due_date"
-                    defaultValue={selectedDate}
-                    className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"
-                  />
-                  <input
-                    name="memo"
-                    placeholder="메모"
-                    className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"
-                  />
-                  <button className="w-full rounded-2xl bg-[#111827] px-3 py-2 text-[11px] font-bold text-white">
-                    저장
-                  </button>
-                </form>
-              </details>
+              <StudentStudyTaskForm
+                action={addSelfStudyTask}
+                subjects={SUBJECTS}
+                selectedDate={selectedDate}
+                homeworkOptions={homeworkOptions}
+              />
 
               {selectedSelfStudyTasks.length === 0 ? (
                 <div className="rounded-[20px] border border-dashed border-[#d1d5db] bg-[#f9fafb] p-4 text-xs font-semibold text-[#6b7280]">
@@ -639,35 +837,42 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {selectedSelfStudyTasks.map((task) => (
+                  {selectedSelfStudyTaskGroups.map((group) => (
+                    <div key={`planner-${group.subject}`} className="rounded-[18px] border border-[#e5e7eb] bg-white p-2">
+                      <div className="mb-2 flex items-center justify-between px-1">
+                        <p className="text-[11px] font-bold text-[#111827]">{group.subject}</p>
+                        <span className="text-[10px] font-semibold text-[#6b7280]">{group.rows.length}개</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {group.rows.map((task) => (
                     <div
                       key={task.id}
-                      className="rounded-[20px] border border-[#e5e7eb] bg-[#f9fafb] p-3"
+                      className={`rounded-[20px] border border-[#e5e7eb] bg-[#f9fafb] p-3 ${task.status === "done" ? "opacity-60" : ""}`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#6b7280]">
                           {task.subject || "기타"}
                         </span>
                         <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${selfStudyChip(task.status)}`}>
-                          {SELF_STUDY_STATUS_LABELS[task.status || "not_started"] || "○"}{" "}
+                          {SELF_STUDY_STATUS_LABELS[task.status || "not_started"] || "X"}{" "}
                           {SELF_STUDY_STATUS_TEXT[task.status || "not_started"] || "미완료"}
                         </span>
                       </div>
 
                       <p className="mt-2 text-[13px] font-bold text-[#111827]">
-                        {task.title}
+                        {homeworkUrgencyIcon(task.due_date)}{task.title}
                       </p>
-                      {task.memo && (
+                      {cleanStudyTaskMemo(task) && (
                         <p className="mt-1 text-[11px] font-medium text-[#6b7280]">
-                          {task.memo}
+                          {cleanStudyTaskMemo(task)}
                         </p>
                       )}
 
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {[
-                          ["not_started", "○"],
+                          ["not_started", "X"],
                           ["in_progress", "△"],
-                          ["done", "×"],
+                          ["done", "✓"],
                           ["deferred", "↗"],
                         ].map(([value, mark]) => (
                           <form key={value} action={updateSelfStudyStatus}>
@@ -680,13 +885,37 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
                             <button
                               className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${
                                 task.status === value
-                                  ? "border-[#111827] bg-[#111827] text-white"
+                                  ? selfStudyChip(value)
                                   : "border-[#d1d5db] bg-white text-[#374151]"
                               }`}
                             >
                               {mark}
                             </button>
                           </form>
+                        ))}
+                      </div>
+
+                      <details className="-mt-7 flow-root">
+                        <summary className="ml-auto flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border border-[#d1d5db] bg-white text-[13px] font-bold leading-none text-[#111827]">⋯</summary>
+                        <div className="clear-both mt-2 rounded-[14px] border border-[#111827] bg-[#111827] p-2 shadow-sm">
+                        <form action={updateSelfStudyTask} className="grid gap-1.5">
+                          <input type="hidden" name="task_id" value={task.id} />
+                          <input type="hidden" name="is_academy" value={String(isAcademyHomework(task))} />
+                          <select name="subject" defaultValue={task.subject || "기타"} className="w-full rounded-xl border border-[#d1d5db] bg-white px-2.5 py-2 text-[11px] font-semibold outline-none">
+                            {SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                          </select>
+                          <input name="title" defaultValue={task.title} className="w-full rounded-xl border border-[#d1d5db] bg-white px-2.5 py-2 text-[11px] font-semibold outline-none" />
+                          <input type="date" name="due_date" defaultValue={task.due_date || selectedDate} className="w-full rounded-xl border border-[#d1d5db] bg-white px-2.5 py-2 text-[11px] font-semibold outline-none" />
+                          <input name="memo" defaultValue={cleanStudyTaskMemo(task)} placeholder="메모" className="w-full rounded-xl border border-[#d1d5db] bg-white px-2.5 py-2 text-[11px] font-semibold outline-none" />
+                          <button className="rounded-xl bg-[#111827] px-3 py-2 text-[11px] font-bold text-white">저장</button>
+                        </form>
+                        <form action={deleteSelfStudyTask} className="mt-1.5">
+                          <input type="hidden" name="task_id" value={task.id} />
+                          <button className="w-full rounded-xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-bold text-[#6b7280]">삭제</button>
+                        </form>
+                        </div>
+                      </details>
+                    </div>
                         ))}
                       </div>
                     </div>
@@ -698,10 +927,10 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
         )}
 
         {activeTab === "performance" && (
-          <section className="space-y-3">
-            <section className="rounded-[28px] border border-[#e5e7eb] bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9ca3af]">Performance</p><h2 className="text-[15px] font-bold text-[#111827]">진행 중인 수행평가</h2></div><span className="rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[11px] font-bold text-[#111827]">{performanceTasks.filter((task) => task.status !== "done").length}개</span></div>
-              <details className="mb-3 rounded-[16px] border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2">
+          <section className="space-y-2">
+            <section className="rounded-[22px] border border-[#e5e7eb] bg-white p-3 shadow-sm">
+              <div className="mb-2 flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9ca3af]">Performance</p><h2 className="text-[15px] font-bold text-[#111827]">진행 중인 수행평가</h2></div><span className="rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[11px] font-bold text-[#111827]">{performanceTasks.filter((task) => task.status !== "done").length}개</span></div>
+              <details className="mb-2 rounded-[14px] border border-[#e5e7eb] bg-[#f9fafb] px-2.5 py-1.5">
                 <summary className="cursor-pointer list-none text-[11px] font-bold text-[#111827]">+ 직접 추가</summary>
                 <form action={addPerformanceTask} className="mt-2 grid w-full gap-1.5">
                   <select name="subject" defaultValue="선택안함" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none">{PERFORMANCE_SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}</select>
@@ -715,7 +944,7 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
               </details>
               {performanceTasks.filter((task) => task.status !== "done").length === 0 ? <div className="rounded-[20px] border border-dashed border-[#d1d5db] bg-[#f9fafb] p-4 text-xs font-semibold text-[#6b7280]">진행 중인 수행평가가 없어요.</div> : <div className="space-y-2">{performanceTasks.filter((task) => task.status !== "done").map((task) => <article key={task.id} className="rounded-[20px] border border-[#e5e7eb] bg-[#f9fafb] p-3"><div className="flex flex-wrap items-center gap-1.5">{task.subject && task.subject !== "선택안함" && <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#6b7280]">{task.subject}</span>}<span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${performanceStatusChip(task.status)}`}>{PERFORMANCE_STATUS_LABELS[task.status] || task.status}</span>{urgentLabel(task.due_date) && <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#111827]">{urgentLabel(task.due_date)}</span>}</div><p className="mt-2 truncate text-[13px] font-bold text-[#111827]">{task.title}</p><p className="mt-1 text-[11px] font-semibold text-[#6b7280]">{formatDate(task.due_date)} {normalizeTime(task.due_time)}</p>{task.memo && <p className="mt-1 text-[11px] font-medium text-[#6b7280]">{task.memo}</p>}<div className="mt-2 flex flex-wrap gap-1.5">{Object.entries(PERFORMANCE_STATUS_LABELS).map(([value, label]) => <form key={value} action={updatePerformanceStatus}><input type="hidden" name="task_id" value={task.id}/><input type="hidden" name="status" value={value}/><button className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${task.status === value ? "border-[#111827] bg-[#111827] text-white" : "border-[#d1d5db] bg-white text-[#374151]"}`}>{label}</button></form>)}</div></article>)}</div>}
             </section>
-            <details className="rounded-[28px] border border-[#e5e7eb] bg-white p-4 shadow-sm">
+            <details className="rounded-[22px] border border-[#e5e7eb] bg-white p-3 shadow-sm">
               <summary className="cursor-pointer list-none text-[13px] font-bold text-[#6b7280]">완료한 수행평가 {performanceTasks.filter((task) => task.status === "done").length}개</summary>
               <div className="mt-3 space-y-2">{performanceTasks.filter((task) => task.status === "done").map((task) => <article key={task.id} className="rounded-[18px] bg-[#f9fafb] p-3"><p className="truncate text-[12px] font-bold text-[#111827]">{task.title}</p><p className="mt-1 text-[9px] font-semibold text-[#6b7280]">{task.subject} · {formatDate(task.due_date)}</p></article>)}</div>
             </details>
@@ -723,26 +952,71 @@ export default async function StudentHomePage({ searchParams }: { searchParams?:
         )}
 
         {activeTab === "progress" && (
-          <section className="rounded-[28px] border border-[#e5e7eb] bg-white p-4 shadow-sm">
-            <div className="mb-3"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9ca3af]">Progress</p><h2 className="text-[15px] font-bold text-[#111827]">시험범위 진도표</h2></div>
+          <section className="rounded-[22px] border border-[#e5e7eb] bg-white p-3 shadow-sm">
+            <div className="mb-2"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9ca3af]">Progress</p><h2 className="text-[15px] font-bold text-[#111827]">시험범위 진도표</h2></div>
             {examSummaryBySubject.length === 0 ? <div className="rounded-[20px] border border-dashed border-[#d1d5db] bg-[#f9fafb] p-4 text-xs font-semibold text-[#6b7280]">아직 등록된 시험범위가 없어요.</div> : <div className="space-y-3">{examSummaryBySubject.map((item) => <details key={item.key} open className="rounded-[16px] border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2"><summary className="cursor-pointer list-none"><div className="flex items-center justify-between gap-2"><div className="min-w-0"><p className="truncate text-[13px] font-bold text-[#111827]">{item.subject}</p><p className="mt-0.5 truncate text-[11px] font-semibold text-[#6b7280]">{[item.publisher, item.materialName].filter(Boolean).join(" · ") || "교재 미입력"}</p></div><span className="shrink-0 text-sm font-bold text-[#111827]">{item.percent}%</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-white"><div className="h-full rounded-full bg-[#111827]" style={{ width: `${item.percent}%` }}/></div></summary><div className="mt-3 overflow-x-auto rounded-[14px] border border-[#e5e7eb] bg-white"><table className="w-full min-w-[640px] border-collapse text-[10px]"><thead><tr className="bg-[#f3f4f6] text-[#6b7280]"><th className="border-b border-[#e5e7eb] px-2 py-1.5 text-left">범위</th>{Array.from(new Set(item.rows.flatMap((row) => getVisibleStatusEntries(parseStatuses(row.statuses)).map(([taskName]) => taskName)))).map((taskName) => <th key={taskName} className="border-b border-[#e5e7eb] px-2 py-1.5 text-center">{taskName}</th>)}</tr></thead><tbody>{item.rows.map((row) => { const statuses = parseStatuses(row.statuses); const taskNames = Array.from(new Set(item.rows.flatMap((r) => getVisibleStatusEntries(parseStatuses(r.statuses)).map(([taskName]) => taskName)))); return <tr key={row.id}><td className="border-b border-[#f3f4f6] px-2 py-1.5 font-semibold">{examProgressScopeTitle(row)}</td>{taskNames.map((taskName) => <td key={taskName} className="border-b border-[#f3f4f6] px-2 py-1.5 text-center"><span className={`inline-flex whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[8.5px] font-bold ${statusChip(statuses[taskName])}`}>{STATUS_LABELS[statuses[taskName]] || statuses[taskName] || "-"}</span></td>)}</tr>; })}</tbody></table></div></details>)}</div>}
           </section>
         )}
 
         {activeTab === "schedule" && (
-          <section className="space-y-3">
-            <section className="rounded-[28px] border border-[#e5e7eb] bg-white p-4 shadow-sm">
-              <div className="mb-3"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9ca3af]">Schedule</p><h2 className="text-[15px] font-bold text-[#111827]">주간 시간표</h2></div>
-              <details className="mb-3 rounded-[16px] border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2"><summary className="cursor-pointer list-none text-[11px] font-bold text-[#111827]">+ 추가</summary><form action={addWeeklyPlanBlock} className="mt-2 grid w-full gap-1.5"><select name="day" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none">{DAYS.map((day) => <option key={day} value={day}>{day}요일</option>)}</select><div className="grid grid-cols-2 gap-2"><input name="start" placeholder="시작 18:00" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"/><input name="end" placeholder="끝 20:00" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"/></div><select name="category" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none">{["학교", "학원", "과외", "자습", "이동", "휴식", "기타"].map((item) => <option key={item} value={item}>{item}</option>)}</select><select name="subject" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"><option value="">과목 없음</option>{SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}</select><input name="memo" placeholder="메모" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"/><button className="w-full rounded-2xl bg-[#111827] px-3 py-2 text-[11px] font-bold text-white">시간표 추가</button></form></details>
+          <section className="space-y-2">
+            <section className="rounded-[22px] border border-[#e5e7eb] bg-white p-3 shadow-sm">
+              <div className="mb-2"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9ca3af]">Schedule</p><h2 className="text-[15px] font-bold text-[#111827]">주간 시간표</h2></div>
+              <details className="mb-2 rounded-[14px] border border-[#e5e7eb] bg-[#f9fafb] px-2.5 py-1.5"><summary className="cursor-pointer list-none text-[11px] font-bold text-[#111827]">+ 추가</summary><form action={addWeeklyPlanBlock} className="mt-2 grid w-full gap-1.5"><select name="day" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none">{DAYS.map((day) => <option key={day} value={day}>{day}요일</option>)}</select><div className="grid grid-cols-2 gap-2"><input name="start" placeholder="시작 18:00" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"/><input name="end" placeholder="끝 20:00" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"/></div><select name="category" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none">{["학교", "학원", "과외", "자습", "이동", "휴식", "기타"].map((item) => <option key={item} value={item}>{item}</option>)}</select><select name="subject" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"><option value="">과목 없음</option>{SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}</select><input name="memo" placeholder="메모" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"/><button className="w-full rounded-2xl bg-[#111827] px-3 py-2 text-[11px] font-bold text-white">시간표 추가</button></form></details>
               <div className="overflow-x-auto rounded-[20px] border border-[#e5e7eb] bg-[#f9fafb]"><table className="w-full min-w-[640px] border-collapse text-[10px]"><thead><tr>{DAYS.map((day) => <th key={day} className="border-b border-[#e5e7eb] bg-white px-2 py-2 text-[#6b7280]">{day}</th>)}</tr></thead><tbody><tr>{DAYS.map((day) => { const blocks = weeklyBlocks.filter((block) => block.day === day); return <td key={day} className="w-[74px] align-top border-r border-[#e5e7eb] p-1.5 last:border-r-0">{blocks.length === 0 ? <span className="text-[#9ca3af]">-</span> : <div className="space-y-1">{blocks.map((block) => <div key={block.id} className="rounded-[12px] bg-white px-1.5 py-1.5 font-semibold text-[#111827]"><p>{block.start}-{block.end}</p><p className="truncate text-[#6b7280]">{weeklyLabel(block)}</p><form action={deleteWeeklyPlanBlock} className="mt-0.5"><input type="hidden" name="block_id" value={block.id}/><button className="text-[8px] text-[#6b7280]">삭제</button></form></div>)}</div>}</td>; })}</tr></tbody></table></div>
+              <div className="mt-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-[11px] font-bold text-[#111827]">주간 숙제 캘린더</p>
+                  <span className="text-[10px] font-semibold text-[#6b7280]">숙제 포함</span>
+                </div>
+                <div className="overflow-x-auto rounded-[20px] border border-[#e5e7eb] bg-[#f9fafb] p-1">
+                  <div className="grid min-w-[640px] grid-cols-7 gap-1">
+                    {weekDays.map((day) => {
+                      const dayHomeworks = weeklyHomeworkItems.filter((item) => item.date === day.dateText);
+                      return (
+                        <div key={day.dateText} className={`min-h-[100px] rounded-[14px] border p-1.5 ${day.isToday ? "border-[#111827] bg-[#111827] text-white" : "border-[#e5e7eb] bg-white text-[#111827]"}`}>
+                          <div className="mb-1 flex items-center justify-between">
+                            <p className="text-[10px] font-bold">{day.day}</p>
+                            <p className="text-[10px] font-bold">{day.dayNumber}</p>
+                          </div>
+                          <div className="space-y-1">
+                            {dayHomeworks.slice(0, 3).map((item) => (
+                              <div key={item.id} className={`rounded-[8px] border px-1 py-0.5 text-[8px] font-semibold ${item.done ? "border-[#22c55e] bg-[#dcfce7] text-[#166534]" : subjectHomeworkChip(item.subject)}`}>
+                                <p className="truncate font-bold">{homeworkUrgencyIcon(item.date)}{item.subject}</p>
+                                <p className="truncate">{item.title}</p>
+                              </div>
+                            ))}
+                            {dayHomeworks.length > 3 && <p className={`text-[8px] font-bold ${day.isToday ? "text-white" : "text-[#6b7280]"}`}>+{dayHomeworks.length - 3}</p>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="mt-3 space-y-1.5">
+                  {weeklyHomeworkItems.length === 0 ? (
+                    <p className="rounded-[16px] bg-[#f9fafb] p-3 text-[11px] font-semibold text-[#6b7280]">이번 주 마감 숙제가 없어요.</p>
+                  ) : (
+                    weeklyHomeworkItems.map((item) => (
+                      <div key={`week-list-${item.id}`} className="rounded-[16px] border border-[#e5e7eb] bg-[#f9fafb] p-2.5">
+                        <p className="truncate text-[11px] font-bold text-[#111827]">{homeworkUrgencyIcon(item.date)}{formatDate(item.date)}까지 · {item.title}</p>
+                        <p className="mt-0.5 truncate text-[9px] font-semibold text-[#6b7280]">{item.subtitle}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </section>
 
-            <section className="rounded-[28px] border border-[#e5e7eb] bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9ca3af]">Calendar</p><h2 className="text-[15px] font-bold text-[#111827]">{calendar.month}월 캘린더</h2></div><div className="flex gap-1"><Link href={`/student?tab=schedule&month=${calendar.currentMonth}${hideClasses ? "" : "&hideClasses=1"}`} className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${hideClasses ? "bg-[#111827] text-white" : "bg-[#f3f4f6] text-[#111827]"}`}>수업 빼고 보기</Link><Link href={`/student?tab=schedule&month=${calendar.prevMonth}${hideClasses ? "&hideClasses=1" : ""}`} className="rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[11px] font-bold text-[#111827]">‹</Link><Link href={`/student?tab=schedule&month=${calendar.nextMonth}${hideClasses ? "&hideClasses=1" : ""}`} className="rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[11px] font-bold text-[#111827]">›</Link></div></div>
+            <section className="rounded-[22px] border border-[#e5e7eb] bg-white p-3 shadow-sm">
+              <div className="mb-2 flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9ca3af]">Calendar</p><h2 className="text-[15px] font-bold text-[#111827]">{calendar.month}월 캘린더</h2></div><div className="flex gap-1"><Link href={`/student?tab=schedule&month=${calendar.currentMonth}${hideClasses ? "" : "&hideClasses=1"}`} className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${hideClasses ? "bg-[#111827] text-white" : "bg-[#f3f4f6] text-[#111827]"}`}>수업 빼고 보기</Link><Link href={`/student?tab=schedule&month=${calendar.prevMonth}${hideClasses ? "&hideClasses=1" : ""}`} className="rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[11px] font-bold text-[#111827]">‹</Link><Link href={`/student?tab=schedule&month=${calendar.nextMonth}${hideClasses ? "&hideClasses=1" : ""}`} className="rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[11px] font-bold text-[#111827]">›</Link></div></div>
               <details open={Boolean(addDate)} className="mb-3 rounded-[16px] border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2"><summary className="cursor-pointer list-none text-[11px] font-bold text-[#111827]">+ 일정 추가</summary><form action={addStudentEvent} className="mt-2 grid w-full gap-1.5"><input name="title" placeholder="일정 이름" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"/><input type="date" name="event_date" defaultValue={addDate || getTodayText()} className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"/><input name="event_time" placeholder="시간 예: 18:00" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"/><select name="event_type" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"><option value="개인일정">개인일정</option><option value="시험">시험</option><option value="수행평가">수행평가</option><option value="학교일정">학교일정</option><option value="기타">기타</option></select><input name="memo" placeholder="메모" className="w-full rounded-2xl border border-[#d1d5db] bg-white px-3 py-2 text-[11px] font-semibold outline-none"/><button className="w-full rounded-2xl bg-[#111827] px-3 py-2 text-[11px] font-bold text-white">일정 추가</button></form></details>
               <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[#6b7280]">{["일","월","화","수","목","금","토"].map((day) => <div key={day} className="py-1">{day}</div>)}{Array.from({ length: calendar.firstWeekday }, (_, index) => <div key={`blank-${index}`}/>)}{calendar.days.map((day) => { const dayEvents = visibleCalendarEvents.filter((event) => event.event_date === day.dateText); const hasClass = !hideClasses && classEventDates.has(day.dateText); const hasPersonal = personalEventDates.has(day.dateText); return <Link key={day.dateText} href={`/student?tab=schedule&month=${calendar.currentMonth}${hideClasses ? "&hideClasses=1" : ""}&addDate=${day.dateText}`} className={`min-h-[48px] rounded-[14px] border p-1 text-left ${day.isToday ? "border-[#111827] bg-[#111827] text-white" : "border-[#e5e7eb] bg-[#f9fafb] text-[#111827]"}`}><p className="text-[10px] font-bold">{day.day}</p><div className="mt-1 flex gap-0.5">{hasClass && <span className="h-1.5 w-1.5 rounded-full bg-[#ef4444]"/>}{hasPersonal && <span className={`h-1.5 w-1.5 rounded-full ${day.isToday ? "bg-white" : "bg-[#111827]"}`}/>} {dayEvents.length > 1 && <span className={`text-[8px] ${day.isToday ? "text-white" : "text-[#6b7280]"}`}>+{dayEvents.length}</span>}</div></Link>; })}</div>
               <div className="mt-4 space-y-2"><p className="text-[11px] font-bold text-[#111827]">이번 달 일정</p>{visibleCalendarEvents.filter((event) => event.event_date?.startsWith(calendar.currentMonth)).length === 0 ? <p className="rounded-[18px] bg-[#f9fafb] p-3 text-xs font-semibold text-[#6b7280]">등록된 일정이 없어요.</p> : <>{calendar.days.flatMap((day) => { const rows = visibleCalendarEvents.filter((event) => event.event_date === day.dateText).map((event) => ({ id: event.id, title: calendarEventTitle(event), type: event.event_type || "일정", time: "", memo: event.memo, class: isClassCalendarEvent(event), date: event.event_date, sourceType: event.source_type })); return rows.map((row) => <div key={row.id} className="rounded-[18px] border border-[#e5e7eb] bg-[#f9fafb] p-3"><div className="flex items-start justify-between gap-2"><div><p className="whitespace-nowrap text-[10px] font-bold text-[#111827]"><span className={row.class ? "text-[#ef4444]" : ""}>●</span> {formatDate(row.date)} {row.title}</p><p className="mt-1 text-[9px] font-semibold text-[#6b7280]">{row.type}{row.memo ? ` · ${row.memo}` : ""}</p></div>{!row.class && row.sourceType !== "performance_task" && <Link href={`/student?tab=schedule&month=${calendar.currentMonth}${hideClasses ? "&hideClasses=1" : ""}&eventId=${row.id}`} className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#111827]">수정</Link>}</div></div>); })}</>}</div>
             </section>
+            <div className="flex justify-center py-1">
+              <LogoutButton />
+            </div>
           </section>
         )}
 

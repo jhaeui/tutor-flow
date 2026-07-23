@@ -12,14 +12,14 @@ const students = [
 
 export default function NewLessonPage() {
   return (
-    <main className="min-h-screen bg-[#f7f3ee] px-6 py-8 text-[#2f2a25]">
+    <main className="min-h-screen bg-[#ffffff] px-6 py-8 text-[#171717]">
       <div className="mx-auto max-w-4xl">
         <header className="mb-8">
-          <a href="/" className="text-sm font-semibold text-[#8b7d70]">
+          <a href="/" className="text-sm font-semibold text-[#525252]">
             ← 대시보드로
           </a>
           <h1 className="mt-3 text-3xl font-bold">수업 기록 추가</h1>
-          <p className="mt-2 text-sm text-[#8b7d70]">
+          <p className="mt-2 text-sm text-[#525252]">
             수업 날짜, 진도, 과제, 다음 수업 계획을 기록하는 페이지
           </p>
         </header>
@@ -101,7 +101,7 @@ export default function NewLessonPage() {
             </a>
             <button
               type="button"
-              className="rounded-2xl bg-[#2f2a25] px-5 py-3 text-sm font-semibold text-white"
+              className="rounded-2xl bg-[#171717] px-5 py-3 text-sm font-semibold text-white"
             >
               저장하기
             </button>

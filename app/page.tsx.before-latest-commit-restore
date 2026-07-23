@@ -1,7 +1,6 @@
 ﻿import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
-import CloseOnSubmitForm from "@/components/CloseOnSubmitForm";
 
 type Student = {
   id: string;
@@ -120,7 +119,7 @@ type LessonScheduleItem = {
   startTime: string;
   endTime: string;
   title: string;
-  eventType: "수업" | "보강수업" | "추가수업" | "직전보강" | "내 일정";
+  eventType: "수업" | "보강수업" | "추가수업" | "내 일정";
   memo?: string | null;
   color: string;
   eventSourceType?: string | null;
@@ -135,9 +134,6 @@ type MonthlyEvent = {
   studentName: string;
   studentId: string;
   event_date: string;
-  range_start?: string | null;
-  range_end?: string | null;
-  range_position?: "single" | "start" | "middle" | "end";
   event_time: string | null;
   end_time?: string | null;
   title: string;
@@ -147,51 +143,27 @@ type MonthlyEvent = {
 };
 
 type PageProps = {
-  searchParams?: Promise<{
-    lessonMonth?: string;
-    calendarMonth?: string;
-    tab?: string;
-  }>;
+  searchParams?: Promise<{ lessonMonth?: string; calendarMonth?: string }>;
 };
 
 const WEEKDAYS_SUN = ["일", "월", "화", "수", "목", "금", "토"];
 const WEEKDAYS_MON = ["월", "화", "수", "목", "금", "토", "일"];
-const LESSON_EVENT_TYPES = ["수업", "보강수업", "추가수업", "직전보강"];
-const PERFORMANCE_STATUS_OPTIONS = [
-  ["not_started", "미완료"],
-  ["in_progress", "진행중"],
-  ["done", "완료"],
-] as const;
+const LESSON_EVENT_TYPES = ["수업", "보강수업", "추가수업"];
 
 const STUDENT_COLORS = [
-  "border-l-[10px] border-[#8FCDD9] bg-[#EAF6F8] text-[#263236] shadow-[inset_0_0_0_1px_rgba(143,205,217,0.3)]",
-  "border-l-[10px] border-[#A9C0D1] bg-[#EDF3F6] text-[#2c3338] shadow-[inset_0_0_0_1px_rgba(169,192,209,0.3)]",
-  "border-l-[10px] border-[#C1B2C9] bg-[#F3EEF6] text-[#343038] shadow-[inset_0_0_0_1px_rgba(193,178,201,0.3)]",
-  "border-l-[10px] border-[#D9A5C0] bg-[#F8EEF3] text-[#3b3036] shadow-[inset_0_0_0_1px_rgba(217,165,192,0.3)]",
-  "border-l-[10px] border-[#E0B7BA] bg-[#F8EFEF] text-[#3b312f] shadow-[inset_0_0_0_1px_rgba(224,183,186,0.3)]",
-  "border-l-[10px] border-[#E3C0B6] bg-[#F8F0EC] text-[#3d332f] shadow-[inset_0_0_0_1px_rgba(227,192,182,0.32)]",
-  "border-l-[10px] border-[#F2C9A4] bg-[#FBF1E5] text-[#3c342b] shadow-[inset_0_0_0_1px_rgba(242,201,164,0.34)]",
-  "border-l-[10px] border-[#EED9AD] bg-[#FBF6E7] text-[#3d392c] shadow-[inset_0_0_0_1px_rgba(238,217,173,0.36)]",
-  "border-l-[10px] border-[#E6E6C4] bg-[#F8F8EC] text-[#383a2d] shadow-[inset_0_0_0_1px_rgba(230,230,196,0.36)]",
-  "border-l-[10px] border-[#D2D9C8] bg-[#F3F5EC] text-[#33382f] shadow-[inset_0_0_0_1px_rgba(210,217,200,0.34)]",
-  "border-l-[10px] border-[#ABD8D6] bg-[#EDF8F7] text-[#263634] shadow-[inset_0_0_0_1px_rgba(171,216,214,0.3)]",
-  "border-l-[10px] border-[#CEC1C3] bg-[#F5F0F1] text-[#383232] shadow-[inset_0_0_0_1px_rgba(206,193,195,0.3)]",
+  "border-l-8 border-[#f6a8c9] bg-[#fff4f8] text-[#7b4058] shadow-[inset_0_0_0_1px_rgba(246,168,201,0.16)]",
+  "border-l-8 border-[#f5c08f] bg-[#fff8ef] text-[#7c5028] shadow-[inset_0_0_0_1px_rgba(245,192,143,0.18)]",
+  "border-l-8 border-[#b9a8f5] bg-[#f7f4ff] text-[#504183] shadow-[inset_0_0_0_1px_rgba(185,168,245,0.18)]",
+  "border-l-8 border-[#98d8c7] bg-[#f1fffb] text-[#2f6d5f] shadow-[inset_0_0_0_1px_rgba(152,216,199,0.18)]",
+  "border-l-8 border-[#9ecdf5] bg-[#f2f9ff] text-[#355f82] shadow-[inset_0_0_0_1px_rgba(158,205,245,0.18)]",
+  "border-l-8 border-[#f2b4b2] bg-[#fff5f4] text-[#7c4543] shadow-[inset_0_0_0_1px_rgba(242,180,178,0.18)]",
+  "border-l-8 border-[#c9a7df] bg-[#fbf4ff] text-[#61406f] shadow-[inset_0_0_0_1px_rgba(201,167,223,0.18)]",
+  "border-l-8 border-[#a8dca9] bg-[#f5fff5] text-[#416b42] shadow-[inset_0_0_0_1px_rgba(168,220,169,0.18)]",
+  "border-l-8 border-[#f3d47f] bg-[#fffbed] text-[#735d23] shadow-[inset_0_0_0_1px_rgba(243,212,127,0.2)]",
+  "border-l-8 border-[#9bdde4] bg-[#f2fdff] text-[#376c72] shadow-[inset_0_0_0_1px_rgba(155,221,228,0.18)]",
+  "border-l-8 border-[#e8abd8] bg-[#fff5fc] text-[#78496d] shadow-[inset_0_0_0_1px_rgba(232,171,216,0.18)]",
+  "border-l-8 border-[#c5d99a] bg-[#fbfff1] text-[#5d6d2f] shadow-[inset_0_0_0_1px_rgba(197,217,154,0.2)]",
 ];
-
-const STUDENT_COLOR_OVERRIDES: Record<string, string> = {
-  규리:
-    "border-l-[10px] border-[#D9A5C0] bg-[#F8EEF3] text-[#3b3036] shadow-[inset_0_0_0_1px_rgba(217,165,192,0.3)]",
-  서연:
-    "border-l-[10px] border-[#8FCDD9] bg-[#EAF6F8] text-[#263236] shadow-[inset_0_0_0_1px_rgba(143,205,217,0.3)]",
-  지후:
-    "border-l-[10px] border-[#EED9AD] bg-[#FBF6E7] text-[#3d392c] shadow-[inset_0_0_0_1px_rgba(238,217,173,0.36)]",
-  시연:
-    "border-l-[10px] border-[#ABD8D6] bg-[#EDF8F7] text-[#263634] shadow-[inset_0_0_0_1px_rgba(171,216,214,0.3)]",
-  승규:
-    "border-l-[10px] border-[#C1B2C9] bg-[#F3EEF6] text-[#343038] shadow-[inset_0_0_0_1px_rgba(193,178,201,0.3)]",
-  다은:
-    "border-l-[10px] border-[#F2C9A4] bg-[#FBF1E5] text-[#3c342b] shadow-[inset_0_0_0_1px_rgba(242,201,164,0.34)]",
-};
 
 function getKstToday() {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -404,10 +376,6 @@ function makeCalendarDaysMonday(year: number, month: number) {
 }
 
 function getStudentColor(studentId: string, students: Student[]) {
-  const student = students.find((item) => item.id === studentId);
-  const override = student?.name ? STUDENT_COLOR_OVERRIDES[student.name] : null;
-  if (override) return override;
-
   const index = Math.max(
     0,
     students.findIndex((student) => student.id === studentId),
@@ -442,20 +410,56 @@ function getActiveSettlementPeriod(settlements: Settlement[], today: string) {
   return { startDate: monthInfo.startDate, endDate: monthInfo.endDate };
 }
 
-function calculateMonthElapsedProgress(today: string) {
-  const monthInfo = getMonthStartEnd(today);
-  const todayDate = new Date(`${today}T00:00:00+09:00`);
-  const lastDate = new Date(`${monthInfo.endDate}T00:00:00+09:00`);
+function calculateProgress(
+  settlements: Settlement[],
+  lessonRecords: LessonRecord[],
+  startDate: string,
+  endDate: string,
+) {
+  const periodSettlements = settlements.filter(
+    (settlement) =>
+      settlement.start_date === startDate && settlement.end_date === endDate,
+  );
 
-  if (Number.isNaN(todayDate.getTime()) || Number.isNaN(lastDate.getTime())) {
-    return { ...monthInfo, percent: 0 };
-  }
+  const expectedCount = periodSettlements.reduce(
+    (sum, settlement) => sum + Number(settlement.expected_lesson_count || 0),
+    0,
+  );
 
-  const elapsedDay = todayDate.getDate();
-  const totalDays = lastDate.getDate();
-  const percent = Math.min(100, Math.max(0, Math.round((elapsedDay / totalDays) * 100)));
+  const countedStudentIds = new Set(periodSettlements.map((settlement) => settlement.student_id));
+  const settledActualCount = periodSettlements.reduce((sum, settlement) => {
+    if (settlement.actual_lesson_count_override !== null && settlement.actual_lesson_count_override !== undefined) {
+      return sum + Number(settlement.actual_lesson_count_override || 0);
+    }
 
-  return { ...monthInfo, elapsedDay, totalDays, percent };
+    return (
+      sum +
+      lessonRecords.filter(
+        (record) =>
+          record.student_id === settlement.student_id &&
+          record.lesson_date >= startDate &&
+          record.lesson_date <= endDate &&
+          !Boolean(record.is_extra),
+      ).length
+    );
+  }, 0);
+
+  const unsavedActualCount = lessonRecords.filter(
+    (record) =>
+      !countedStudentIds.has(record.student_id) &&
+      record.lesson_date >= startDate &&
+      record.lesson_date <= endDate &&
+      !Boolean(record.is_extra),
+  ).length;
+
+  const actualCount = settledActualCount + unsavedActualCount;
+
+  const percent =
+    expectedCount > 0
+      ? Math.min(100, Math.round((actualCount / expectedCount) * 100))
+      : 0;
+
+  return { expectedCount, actualCount, percent };
 }
 
 function makeFixedLessonItems(
@@ -739,46 +743,6 @@ function groupMonthlyEvents(events: MonthlyEvent[]) {
   }, {});
 }
 
-const RANGE_END_MARKER = "[end_date:";
-
-function stripRangeEndMarker(memo?: string | null) {
-  return String(memo || "").replace(/\s*\[end_date:\d{4}-\d{2}-\d{2}\]\s*/g, " ").trim();
-}
-
-function getRangeEndFromMemo(memo?: string | null) {
-  return String(memo || "").match(/\[end_date:(\d{4}-\d{2}-\d{2})\]/)?.[1] || null;
-}
-
-function memoWithRangeEnd(memo: string, startDate: string, endDate: string) {
-  const cleanMemo = stripRangeEndMarker(memo);
-  if (!endDate || endDate <= startDate) return cleanMemo || null;
-  return `${cleanMemo ? `${cleanMemo} ` : ""}${RANGE_END_MARKER}${endDate}]`;
-}
-
-function expandMonthlyEventRange(event: MonthlyEvent, monthStart: string, monthEnd: string) {
-  const rangeStart = event.event_date;
-  const rawRangeEnd = event.range_end && event.range_end >= rangeStart ? event.range_end : rangeStart;
-  const start = rangeStart < monthStart ? monthStart : rangeStart;
-  const end = rawRangeEnd > monthEnd ? monthEnd : rawRangeEnd;
-  const dates = makeDateRange(start, end);
-  return dates.map((dateText) => ({
-    ...event,
-    id: `${event.id}-${dateText}`,
-    event_date: dateText,
-    range_start: rangeStart,
-    range_end: rawRangeEnd,
-    range_position: (
-      rangeStart === rawRangeEnd
-        ? "single"
-        : dateText === rangeStart
-          ? "start"
-          : dateText === rawRangeEnd
-            ? "end"
-            : "middle"
-    ) as MonthlyEvent["range_position"],
-  }));
-}
-
 function makeMonthlyEvents(
   events: StudentEvent[],
   personalEvents: PersonalEvent[],
@@ -796,12 +760,9 @@ function makeMonthlyEvents(
     )
     .map((event) => {
       const studentName = getStudentName(event.student_id, students);
-      const cleanTitle = String(event.title || "").trim();
-      const subject = String(event.subject || "").trim();
-      const titleWithSubject = subject && !cleanTitle.startsWith(subject)
-        ? `${subject} ${cleanTitle}`
-        : cleanTitle;
-      const baseTitle = `${studentName} ${titleWithSubject}`.trim();
+      const baseTitle = event.subject
+        ? `${studentName} ${event.subject} ${event.title}`
+        : `${studentName} ${event.title}`;
 
       return {
         id: `event-${event.id}`,
@@ -835,35 +796,29 @@ function makeMonthlyEvents(
       event_time: null,
       title: `${getStudentName(settlement.student_id, students)} 피드백`,
       event_type: settlement.feedback_done ? "피드백 완료" : "피드백",
-      color: "border-[#CEC1C3] bg-[#ffffff] text-[#404040]",
+      color: "border-[#f5b7cd] bg-[#fff0f6] text-[#b94f75]",
       memo: null,
     }));
 
   const mineEvents = personalEvents
-    .flatMap((event) => {
-      const rangeEnd = getRangeEndFromMemo(event.memo) || event.event_date;
-      if (event.event_date > monthEnd || rangeEnd < monthStart) return [];
-      return expandMonthlyEventRange(
-        {
-          id: `personal-${event.id}`,
-          sourceType: "personal_event" as const,
-          sourceId: event.id,
-          studentName: "나",
-          studentId: "",
-          event_date: event.event_date,
-          event_time: normalizeTime(event.event_time),
-          end_time: normalizeTime(event.end_time),
-          title: `💗 ${event.title}`,
-          event_type: "나만보기",
-          color:
-            "border-[#171717] bg-[#e5e5e5] text-[#4f4a45] font-black shadow-[0_0_0_1px_rgba(231,71,134,0.22)]",
-          memo: stripRangeEndMarker(event.memo),
-          range_end: rangeEnd,
-        },
-        monthStart,
-        monthEnd,
-      );
-    });
+    .filter(
+      (event) => event.event_date >= monthStart && event.event_date <= monthEnd,
+    )
+    .map((event) => ({
+      id: `personal-${event.id}`,
+      sourceType: "personal_event" as const,
+      sourceId: event.id,
+      studentName: "나",
+      studentId: "",
+      event_date: event.event_date,
+      event_time: normalizeTime(event.event_time),
+      end_time: normalizeTime(event.end_time),
+      title: `💗 ${event.title}`,
+      event_type: "나만보기",
+      color:
+        "border-[#e74786] bg-[#ffdbeb] text-[#9b174f] font-black shadow-[0_0_0_1px_rgba(231,71,134,0.22)]",
+      memo: event.memo,
+    }));
 
   return [...normalEvents, ...feedbackEvents, ...mineEvents].sort((a, b) => {
     const dateCompare = a.event_date.localeCompare(b.event_date);
@@ -875,9 +830,6 @@ function makeMonthlyEvents(
 export default async function DashboardPage({ searchParams }: PageProps) {
   const today = getKstToday();
   const rawSearchParams = searchParams ? await searchParams : {};
-  const mobileTab = ["schedule"].includes(rawSearchParams.tab || "")
-    ? rawSearchParams.tab
-    : "lessons";
   const currentMonthInfo = getMonthStartEnd(today);
   const lessonScheduleMonthInfo = getMonthStartEnd(
     getMonthDateFromParam(rawSearchParams.lessonMonth, today),
@@ -960,13 +912,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       .from("settlements")
       .select("*")
       .or(
-        `and(start_date.lte.${today},end_date.gte.${today}),and(start_date.lte.${lessonScheduleMonthInfo.endDate},end_date.gte.${lessonScheduleMonthInfo.startDate}),and(start_date.eq.${currentMonthInfo.startDate},end_date.eq.${currentMonthInfo.endDate}),and(feedback_date.gte.${calendarMonthInfo.startDate},feedback_date.lte.${calendarMonthInfo.endDate})`,
+        `and(start_date.lte.${today},end_date.gte.${today}),and(start_date.eq.${currentMonthInfo.startDate},end_date.eq.${currentMonthInfo.endDate}),and(feedback_date.gte.${calendarMonthInfo.startDate},feedback_date.lte.${calendarMonthInfo.endDate})`,
       )
       .limit(500),
     supabase
       .from("personal_events")
       .select("*")
-      .gte("event_date", addHours(calendarMonthInfo.startDate, -90))
+      .gte("event_date", calendarMonthInfo.startDate)
       .lte("event_date", calendarMonthInfo.endDate)
       .order("event_date", { ascending: true })
       .order("event_time", { ascending: true }),
@@ -1001,7 +953,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     []) as PersonalDayEvent[];
   const personalTodos = (personalTodoResult.data || []) as PersonalTodo[];
 
-  const progress = calculateMonthElapsedProgress(today);
+  const activePeriod = getActiveSettlementPeriod(settlements, today);
+  const progress = calculateProgress(
+    settlements,
+    lessonRecords,
+    activePeriod.startDate,
+    activePeriod.endDate,
+  );
 
   const fixedWeekItems = makeFixedLessonItems(
     lessonTimes,
@@ -1053,7 +1011,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       title: `💗 ${event.title}`,
       eventType: "내 일정",
       memo: event.memo,
-      color: "border-[#C8BAC6] bg-[#ffffff] text-[#70665e]",
+      color: "border-[#f3bdd0] bg-[#fff0f6] text-[#9b4965]",
     }));
   const personalCalendarTodayItems: LessonScheduleItem[] = personalEvents
     .filter((event) => event.event_date === today)
@@ -1070,7 +1028,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       title: `💗 ${event.title ||  "나만보기 일정"}`,
       eventType: "내 일정",
       memo: event.memo,
-      color: "border-[#C8BAC6] bg-[#ffffff] text-[#70665e]",
+      color: "border-[#f3bdd0] bg-[#fff0f6] text-[#9b4965]",
     }));
   const todayItems = sortScheduleItems([
     ...personalCalendarTodayItems,
@@ -1179,153 +1137,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     if (error) throw new Error(error.message);
 
     if (studentId) revalidatePath(`/students/${studentId}`);
-    revalidatePath("/");
-  }
-
-  async function addDashboardPerformanceTask(formData: FormData) {
-    "use server";
-
-    const studentId = String(formData.get("student_id") || "").trim();
-    const subject = String(formData.get("subject") || "").trim();
-    const title = String(formData.get("title") || "").trim();
-    const dueDate = String(formData.get("due_date") || "").trim();
-    const dueTime = String(formData.get("due_time") || "").trim();
-    const memo = String(formData.get("memo") || "").trim();
-
-    if (!studentId || !subject || !title) {
-      throw new Error("학생, 과목, 수행 내용은 꼭 필요해.");
-    }
-
-    const { data: task, error } = await supabase
-      .from("student_performance_tasks")
-      .insert({
-        student_id: studentId,
-        subject,
-        title,
-        due_date: dueDate || null,
-        due_time: dueTime || null,
-        status: "not_started",
-        memo: memo || null,
-      })
-      .select("id")
-      .single();
-
-    if (error) throw new Error(error.message);
-
-    if (task?.id && dueDate) {
-      const { error: eventError } = await supabase.from("student_events").insert({
-        student_id: studentId,
-        event_date: dueDate,
-        event_time: dueTime || null,
-        subject,
-        title,
-        event_type: "수행평가",
-        memo: memo || null,
-        is_auto: true,
-        source_type: "performance_task",
-        source_id: task.id,
-      });
-      if (eventError) throw new Error(eventError.message);
-    }
-
-    revalidatePath(`/students/${studentId}`);
-    revalidatePath("/");
-  }
-
-  async function updateDashboardPerformanceTask(formData: FormData) {
-    "use server";
-
-    const taskId = String(formData.get("task_id") || "").trim();
-    const studentId = String(formData.get("student_id") || "").trim();
-    const subject = String(formData.get("subject") || "").trim();
-    const title = String(formData.get("title") || "").trim();
-    const dueDate = String(formData.get("due_date") || "").trim();
-    const dueTime = String(formData.get("due_time") || "").trim();
-    const status = String(formData.get("status") || "not_started").trim();
-    const memo = String(formData.get("memo") || "").trim();
-
-    if (!taskId || !studentId || !subject || !title) return;
-
-    const { error } = await supabase
-      .from("student_performance_tasks")
-      .update({
-        subject,
-        title,
-        due_date: dueDate || null,
-        due_time: dueTime || null,
-        status: status || "not_started",
-        memo: memo || null,
-      })
-      .eq("id", taskId)
-      .eq("student_id", studentId);
-
-    if (error) throw new Error(error.message);
-
-    const { data: existingEvent, error: eventFetchError } = await supabase
-      .from("student_events")
-      .select("id")
-      .eq("student_id", studentId)
-      .eq("source_type", "performance_task")
-      .eq("source_id", taskId)
-      .maybeSingle();
-
-    if (eventFetchError) throw new Error(eventFetchError.message);
-
-    if (dueDate) {
-      const payload = {
-        student_id: studentId,
-        event_date: dueDate,
-        event_time: dueTime || null,
-        subject,
-        title,
-        event_type: "수행평가",
-        memo: memo || null,
-        is_auto: true,
-        source_type: "performance_task",
-        source_id: taskId,
-      };
-      const { error: eventError } = existingEvent?.id
-        ? await supabase.from("student_events").update(payload).eq("id", existingEvent.id)
-        : await supabase.from("student_events").insert(payload);
-      if (eventError) throw new Error(eventError.message);
-    } else if (existingEvent?.id) {
-      const { error: deleteEventError } = await supabase
-        .from("student_events")
-        .delete()
-        .eq("id", existingEvent.id);
-      if (deleteEventError) throw new Error(deleteEventError.message);
-    }
-
-    revalidatePath(`/students/${studentId}`);
-    revalidatePath("/");
-  }
-
-  async function deleteDashboardPerformanceTask(formData: FormData) {
-    "use server";
-
-    const taskId = String(formData.get("task_id") || "").trim();
-    const studentId = String(formData.get("student_id") || "").trim();
-
-    if (!taskId || !studentId) return;
-
-    const { error } = await supabase
-      .from("student_performance_tasks")
-      .delete()
-      .eq("id", taskId)
-      .eq("student_id", studentId);
-
-    if (error) throw new Error(error.message);
-
-    const { error: eventError } = await supabase
-      .from("student_events")
-      .delete()
-      .eq("student_id", studentId)
-      .eq("source_type", "performance_task")
-      .eq("source_id", taskId);
-
-    if (eventError) throw new Error(eventError.message);
-
-    revalidatePath(`/students/${studentId}`);
     revalidatePath("/");
   }
 
@@ -1534,47 +1345,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     revalidatePath("/");
   }
 
-  async function addDashboardLessonEvent(formData: FormData) {
-    "use server";
-
-    const studentId = String(formData.get("student_id") || "").trim();
-    const eventDate = String(formData.get("event_date") || "").trim();
-    const eventTime = String(formData.get("event_time") || "").trim();
-    const eventType = String(formData.get("event_type") || "수업").trim();
-    const memo = String(formData.get("memo") || "").trim();
-
-    if (!studentId || !eventDate) {
-      throw new Error("학생과 수업 날짜는 꼭 필요해.");
-    }
-
-    const finalType = LESSON_EVENT_TYPES.includes(eventType)
-      ? eventType
-      : "수업";
-
-    const { error } = await supabase.from("student_events").insert({
-      student_id: studentId,
-      event_date: eventDate,
-      event_time: eventTime || null,
-      subject: "수업",
-      title: finalType,
-      event_type: finalType,
-      memo: memo || null,
-      is_auto: false,
-      source_type: "manual",
-      source_id: null,
-    });
-
-    if (error) throw new Error(error.message);
-
-    revalidatePath(`/students/${studentId}`);
-    revalidatePath("/");
-  }
-
   async function addPersonalEvent(formData: FormData) {
     "use server";
 
     const eventDate = String(formData.get("event_date") || "").trim();
-    const endDate = String(formData.get("end_date") || "").trim();
     const eventTime = String(formData.get("event_time") || "").trim();
     const endTime = String(formData.get("end_time") || "").trim();
     const title = String(formData.get("title") || "").trim();
@@ -1589,7 +1363,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       event_time: eventTime || null,
       end_time: endTime || null,
       title,
-      memo: memoWithRangeEnd(memo, eventDate, endDate || eventDate),
+      memo: memo || null,
     });
 
     if (error) throw new Error(error.message);
@@ -1728,7 +1502,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     const sourceId = String(formData.get("source_id") || "");
     const studentId = String(formData.get("student_id") || "");
     const eventDate = String(formData.get("event_date") || "").trim();
-    const endDate = String(formData.get("end_date") || "").trim();
     const eventTime = String(formData.get("event_time") || "").trim();
     const endTime = String(formData.get("end_time") || "").trim();
     const title = String(formData.get("title") || "").trim();
@@ -1765,7 +1538,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           event_time: eventTime || null,
           end_time: endTime || null,
           title,
-          memo: memoWithRangeEnd(memo, eventDate, endDate || eventDate),
+          memo: memo || null,
         })
         .eq("id", sourceId);
       if (error) throw new Error(error.message);
@@ -1813,431 +1586,15 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[#ffffff] px-2 pb-20 pt-2 text-[#171717] md:px-5 md:py-8">
-      <div className="mx-auto flex w-full max-w-[390px] flex-col gap-2 md:hidden">
-        <header className="px-1 py-1">
-          <div>
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold text-[#525252]">
-                {formatShortDate(progress.startDate)} ~ {formatShortDate(progress.endDate)}
-              </p>
-              <p className="text-sm font-black text-[#171717]">{progress.percent}%</p>
-            </div>
-            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#d4d4d4]">
-              <div className="h-full rounded-full bg-[#171717]" style={{ width: `${progress.percent}%` }} />
-            </div>
-          </div>
-        </header>
-
-        <section id="mobile-lessons" className={`${mobileTab === "lessons" ? "" : "hidden"} rounded-[20px] border border-[#e5e5e5] bg-white p-3 shadow-sm`}>
-          <div className="mb-2 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#737373]">Today</p>
-              <h2 className="text-[15px] font-black text-[#171717]">오늘 일정</h2>
-            </div>
-            <span className="rounded-full bg-[#f5f5f5] px-2 py-0.5 text-[10px] font-black text-[#404040]">
-              {todayItems.length}개
-            </span>
-          </div>
-          {todayItems.length === 0 ? (
-            <p className="rounded-[14px] border border-dashed border-[#d4d4d4] bg-[#f7f7f7] px-3 py-4 text-center text-xs font-bold text-[#525252]">
-              오늘 일정이 없어요.
-            </p>
-          ) : (
-            <div className="space-y-1.5">
-              {todayItems.map((item) => (
-                <Link
-                  key={`mobile-today-${item.id}`}
-                  href={item.studentId ? `/students/${item.studentId}` : "/"}
-                  className={`block rounded-none border px-3 py-2 ${item.color}`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-black">
-                        {item.startTime || "시간 미입력"}{item.endTime ? ` - ${item.endTime}` : ""}
-                      </p>
-                      <p className="mt-0.5 truncate text-[13px] font-black">{item.title}</p>
-                    </div>
-                    <span className="shrink-0 text-[10px] font-bold opacity-75">{item.eventType}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section id="mobile-schedule" className={`${mobileTab === "schedule" ? "" : "hidden"} rounded-[20px] border border-[#e5e5e5] bg-white p-3 shadow-sm`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-[15px] font-black text-[#171717]">다가오는 수행</h2>
-            <span className="text-[10px] font-bold text-[#737373]">{sortedPerformanceTasks.length}개</span>
-          </div>
-          {sortedPerformanceTasks.length === 0 ? (
-            <p className="rounded-[14px] border border-dashed border-[#d4d4d4] bg-[#f7f7f7] px-3 py-3 text-center text-xs font-bold text-[#525252]">
-              진행 중인 수행평가가 없어요.
-            </p>
-          ) : (
-            <div className="space-y-1.5">
-              {sortedPerformanceTasks.slice(0, 8).map((task) => {
-                const badge = deadlineBadge(task.due_date, today);
-                return (
-                  <div key={`mobile-performance-${task.id}`} className="rounded-[12px] border border-[#e5e5e5] bg-[#f5f5f5] px-2.5 py-2">
-                    <div className="flex items-start gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="rounded-full bg-white px-1.5 py-0.5 text-[9px] font-black text-[#171717]">{getStudentName(task.student_id, students)}</span>
-                          <span className="rounded-full bg-white px-1.5 py-0.5 text-[9px] font-bold text-[#525252]">{task.subject}</span>
-                          {badge && <span className="ml-auto shrink-0 text-[9px] font-black text-[#9a3412]">{badge}</span>}
-                        </div>
-                        <p className="mt-1 truncate text-[12px] font-black text-[#171717]">{task.title}</p>
-                        <p className="mt-0.5 text-[10px] font-bold text-[#737373]">
-                          {formatShortDate(task.due_date)}까지 {normalizeTime(task.due_time)}
-                        </p>
-                      </div>
-                      <details suppressHydrationWarning className="shrink-0">
-                        <summary className="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full bg-white text-[13px] font-black text-[#171717]">⋯</summary>
-                        <div className="fixed inset-0 z-[70] bg-black/45" aria-hidden="true" />
-                        <div className="fixed left-1/2 top-1/2 z-[80] w-[min(88vw,300px)] -translate-x-1/2 -translate-y-1/2 rounded-[16px] bg-[#171717] p-3 text-white shadow-2xl">
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <p className="truncate text-xs font-black">수행 수정</p>
-                            <span className="text-[9px] font-bold text-white/60">다시 누르면 닫힘</span>
-                          </div>
-                          <CloseOnSubmitForm action={updateDashboardPerformanceTask} className="grid gap-1.5">
-                            <input type="hidden" name="task_id" value={task.id} />
-                            <input type="hidden" name="student_id" value={task.student_id} />
-                            <input name="subject" defaultValue={task.subject} placeholder="과목" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                            <input name="title" defaultValue={task.title} placeholder="내용" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                            <div className="grid grid-cols-2 gap-1">
-                              <input type="date" name="due_date" defaultValue={task.due_date || ""} className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                              <input name="due_time" defaultValue={normalizeTime(task.due_time)} placeholder="시간" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                            </div>
-                            <select name="status" defaultValue={task.status} className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none">
-                              {PERFORMANCE_STATUS_OPTIONS.map(([value, label]) => (
-                                <option key={`mobile-performance-status-${task.id}-${value}`} value={value}>
-                                  {label}
-                                </option>
-                              ))}
-                            </select>
-                            <input name="memo" defaultValue={task.memo || ""} placeholder="메모" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                            <div className="grid grid-cols-2 gap-1">
-                              <button className="rounded-lg bg-white px-2 py-1.5 text-[11px] font-black text-[#171717]">수정</button>
-                              <button formAction={deleteDashboardPerformanceTask} className="rounded-lg bg-white/15 px-2 py-1.5 text-[11px] font-black text-white">삭제</button>
-                            </div>
-                          </CloseOnSubmitForm>
-                        </div>
-                      </details>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          <details suppressHydrationWarning className="mt-2 rounded-[14px] border border-[#e5e5e5] bg-[#f7f7f7] px-2.5 py-1.5">
-            <summary className="cursor-pointer list-none text-[11px] font-black text-[#171717]">+ 수행 추가</summary>
-            <form action={addDashboardPerformanceTask} className="mt-2 grid gap-1.5">
-              <select name="student_id" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none">
-                <option value="">학생</option>
-                {students.map((student) => (
-                  <option key={`mobile-add-performance-${student.id}`} value={student.id}>
-                    {student.name}
-                  </option>
-                ))}
-              </select>
-              <div className="grid grid-cols-2 gap-1">
-                <input name="subject" placeholder="과목" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-                <input type="date" name="due_date" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-              </div>
-              <input name="title" placeholder="수행 내용" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-              <input name="due_time" placeholder="시간" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-              <input name="memo" placeholder="메모" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-              <button className="rounded-lg bg-[#171717] px-2 py-1.5 text-[11px] font-black text-white">추가</button>
-            </form>
-          </details>
-        </section>
-
-        <section id="mobile-week" className={`${mobileTab === "lessons" ? "" : "hidden"} rounded-[20px] border border-[#e5e5e5] bg-white p-3 shadow-sm`}>
-          <div className="mb-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#737373]">Week</p>
-            <h2 className="text-[15px] font-black text-[#171717]">이번주 수업</h2>
-          </div>
-          <div className="overflow-x-auto rounded-[16px] border border-[#e5e5e5] bg-[#f5f5f5] p-1">
-            <div className="grid min-w-[980px] grid-cols-7 gap-1">
-              {weekDates.map((dateText) => {
-                const dayItems = scheduleByDate[dateText] || [];
-                return (
-                  <div key={`mobile-week-${dateText}`} className={`min-h-[108px] rounded-[12px] border p-1.5 ${dateText === today ? "border-[#171717] bg-[#171717] text-white" : "border-[#e5e5e5] bg-white text-[#171717]"}`}>
-                    <div className="mb-1 flex items-center justify-between">
-                      <p className="text-[10px] font-black">{getDayLabel(dateText)}</p>
-                      <p className="text-[10px] font-black">{formatShortDate(dateText)}</p>
-                    </div>
-                    <div className="space-y-1">
-                      {dayItems.map((item) => (
-                        <details suppressHydrationWarning key={`mobile-week-item-${item.id}`} className={`rounded-none border px-2 py-1 text-[10px] font-bold ${item.color}`}>
-                          <summary className="cursor-pointer list-none">
-                            <p className="whitespace-nowrap">
-                              {item.startTime || "--:--"} {item.studentName}
-                            </p>
-                          </summary>
-                          <div className="fixed inset-0 z-[70] bg-black/45" aria-hidden="true" />
-                          <div className="fixed left-1/2 top-1/2 z-[80] w-[min(88vw,300px)] -translate-x-1/2 -translate-y-1/2 rounded-[16px] bg-[#171717] p-3 text-white shadow-2xl">
-                            <div className="mb-2 flex items-center justify-between gap-2">
-                              <p className="truncate text-xs font-black">{item.studentName} 수업</p>
-                              <span className="text-[9px] font-bold text-white/60">다시 누르면 닫힘</span>
-                            </div>
-                            <CloseOnSubmitForm action={updateLessonSchedule} className="grid gap-1.5">
-                              <input type="hidden" name="source_type" value={item.sourceType} />
-                              <input type="hidden" name="source_id" value={item.sourceId} />
-                              <input type="hidden" name="student_id" value={item.studentId} />
-                              <input type="hidden" name="original_date" value={item.originalDate || item.date} />
-                              <input type="hidden" name="original_time" value={item.startTime} />
-                              <input type="date" name="date" defaultValue={item.date} className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                              <div className="grid grid-cols-2 gap-1">
-                                <input name="start_time" defaultValue={item.startTime} placeholder="시작" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                                <input name="end_time" defaultValue={item.endTime} placeholder="종료" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                              </div>
-                              <input name="memo" defaultValue={item.memo || ""} placeholder="메모" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                              <div className="grid grid-cols-2 gap-1">
-                                <button className="rounded-lg bg-white px-2 py-1.5 text-[11px] font-black text-[#171717]">수정</button>
-                                <button formAction={deleteLessonSchedule} className="rounded-lg bg-white/15 px-2 py-1.5 text-[11px] font-black text-white">삭제</button>
-                              </div>
-                            </CloseOnSubmitForm>
-                          </div>
-                        </details>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        <section className={`${mobileTab === "lessons" ? "" : "hidden"} rounded-[20px] border border-[#e5e5e5] bg-white p-3 shadow-sm`}>
-          <div className="mb-2 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#737373]">Month</p>
-              <h2 className="text-[15px] font-black text-[#171717]">이번달 수업 캘린더</h2>
-            </div>
-            <div className="flex gap-1">
-              <Link href={`/?lessonMonth=${addMonthsToParam(lessonMonthParam, -1)}&calendarMonth=${calendarMonthParam}`} className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-[#171717]">‹</Link>
-              <Link href={`/?lessonMonth=${monthParamFromInfo(currentMonthInfo)}&calendarMonth=${calendarMonthParam}`} className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-[#171717]">이번달</Link>
-              <Link href={`/?lessonMonth=${addMonthsToParam(lessonMonthParam, 1)}&calendarMonth=${calendarMonthParam}`} className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-[#171717]">›</Link>
-            </div>
-          </div>
-          <div className="overflow-x-auto rounded-[14px] border border-[#e5e5e5] bg-[#f5f5f5] p-0.5">
-            <div className="min-w-[660px]">
-              <div className="grid grid-cols-7 gap-1 pb-1 text-center text-[10px] font-black text-[#737373]">
-                {WEEKDAYS_MON.map((day) => <div key={`mobile-lesson-month-head-${day}`} className="py-1">{day}</div>)}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {lessonScheduleCalendarDays.map((cell, index) => {
-                  const dayItems = cell.dateText ? monthScheduleByDate[cell.dateText] || [] : [];
-                  return (
-                    <div key={`mobile-lesson-month-${cell.dateText || index}`} className={`min-h-[66px] rounded-[10px] border p-1 ${cell.dateText === today ? "border-[#171717] bg-[#171717] text-white" : cell.dateText ? "border-[#e5e5e5] bg-white text-[#171717]" : "border-transparent bg-transparent"}`}>
-                      {cell.dateText && (
-                        <>
-                          <div className="mb-1 flex items-center justify-between">
-                            <p className="text-[10px] font-black">{cell.day}</p>
-                            {dayItems.length > 0 && <p className={`rounded-full px-1 py-0.5 text-[7px] font-black ${cell.dateText === today ? "bg-white text-[#171717]" : "bg-[#f5f5f5] text-[#525252]"}`}>{dayItems.length}</p>}
-                          </div>
-                          <div className="space-y-0.5">
-                            {dayItems.map((item) => (
-                              <details suppressHydrationWarning key={`mobile-lesson-month-item-${item.id}`} className={`rounded-none border px-0.5 py-0.5 text-[8px] font-bold leading-tight ${item.color}`}>
-                                <summary className="cursor-pointer list-none">
-                                  <p className="whitespace-nowrap">
-                                    {item.startTime || "--:--"} {item.studentName}
-                                  </p>
-                                </summary>
-                                <div className="fixed inset-0 z-[70] bg-black/45" aria-hidden="true" />
-                                <div className="fixed left-1/2 top-1/2 z-[80] w-[min(88vw,300px)] -translate-x-1/2 -translate-y-1/2 rounded-[16px] bg-[#171717] p-3 text-white shadow-2xl">
-                                  <div className="mb-2 flex items-center justify-between gap-2">
-                                    <p className="truncate text-xs font-black">{item.studentName} 수업</p>
-                                    <span className="text-[9px] font-bold text-white/60">다시 누르면 닫힘</span>
-                                  </div>
-                                  <CloseOnSubmitForm action={updateLessonSchedule} className="grid gap-1.5">
-                                    <input type="hidden" name="source_type" value={item.sourceType} />
-                                    <input type="hidden" name="source_id" value={item.sourceId} />
-                                    <input type="hidden" name="student_id" value={item.studentId} />
-                                    <input type="hidden" name="original_date" value={item.originalDate || item.date} />
-                                    <input type="hidden" name="original_time" value={item.startTime} />
-                                    <input type="date" name="date" defaultValue={item.date} className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                                    <div className="grid grid-cols-2 gap-1">
-                                      <input name="start_time" defaultValue={item.startTime} placeholder="시작" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                                      <input name="end_time" defaultValue={item.endTime} placeholder="종료" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                                    </div>
-                                    <input name="memo" defaultValue={item.memo || ""} placeholder="메모" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                                    <div className="grid grid-cols-2 gap-1">
-                                      <button className="rounded-lg bg-white px-2 py-1.5 text-[11px] font-black text-[#171717]">수정</button>
-                                      <button formAction={deleteLessonSchedule} className="rounded-lg bg-white/15 px-2 py-1.5 text-[11px] font-black text-white">삭제</button>
-                                    </div>
-                                  </CloseOnSubmitForm>
-                                </div>
-                              </details>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-          <details suppressHydrationWarning className="mt-2 rounded-[14px] border border-[#e5e5e5] bg-[#f7f7f7] px-2.5 py-1.5">
-            <summary className="cursor-pointer list-none text-[11px] font-black text-[#171717]">+ 수업 추가</summary>
-            <form action={addDashboardLessonEvent} className="mt-2 grid gap-1.5">
-              <select name="student_id" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none">
-                <option value="">학생</option>
-                {students.map((student) => (
-                  <option key={`mobile-add-lesson-${student.id}`} value={student.id}>
-                    {student.name}
-                  </option>
-                ))}
-              </select>
-              <input type="date" name="event_date" defaultValue={today} className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-              <div className="grid grid-cols-2 gap-1">
-                <input name="event_time" placeholder="시작" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-                <select name="event_type" defaultValue="수업" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none">
-                  {LESSON_EVENT_TYPES.map((type) => (
-                    <option key={`mobile-lesson-type-${type}`} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <input name="memo" placeholder="메모" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-              <button className="rounded-lg bg-[#171717] px-2 py-1.5 text-[11px] font-black text-white">추가</button>
-            </form>
-          </details>
-        </section>
-
-        <section id="mobile-calendar" className={`${mobileTab === "schedule" ? "" : "hidden"} rounded-[20px] border border-[#e5e5e5] bg-white p-3 shadow-sm`}>
-          <div className="mb-2 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#737373]">Calendar</p>
-              <h2 className="text-[15px] font-black text-[#171717]">{formatMonthTitle(calendarMonthInfo)}</h2>
-            </div>
-            <div className="flex gap-1">
-              <Link href={`/?tab=schedule&lessonMonth=${lessonMonthParam}&calendarMonth=${addMonthsToParam(calendarMonthParam, -1)}`} className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-[#171717]">‹</Link>
-              <Link href={`/?tab=schedule&lessonMonth=${lessonMonthParam}&calendarMonth=${addMonthsToParam(calendarMonthParam, 1)}`} className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-[#171717]">›</Link>
-            </div>
-          </div>
-          <div className="overflow-x-auto rounded-[14px] border border-[#e5e5e5] bg-[#f5f5f5] p-0.5">
-            <div className="min-w-[760px]">
-              <div className="grid grid-cols-7 gap-1 pb-1 text-center text-[10px] font-black text-[#737373]">
-                {WEEKDAYS_MON.map((day) => <div key={`mobile-month-head-${day}`} className="py-1">{day}</div>)}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {monthlyCalendarDays.map((cell, index) => {
-                  const dayEvents = cell.dateText ? (monthlyEventsByDate[cell.dateText] || []).filter((event) => event.sourceType !== "feedback") : [];
-                  return (
-                    <div key={`mobile-month-${cell.dateText || index}`} className={`min-h-[66px] rounded-[10px] border p-1 ${cell.dateText === today ? "border-[#171717] bg-[#171717] text-white" : cell.dateText ? "border-[#e5e5e5] bg-white text-[#171717]" : "border-transparent bg-transparent"}`}>
-                      {cell.dateText && (
-                        <>
-                          <div className="mb-1 flex items-center justify-between">
-                            <p className="text-[10px] font-black">{cell.day}</p>
-                            {dayEvents.length > 0 && <p className={`rounded-full px-1 py-0.5 text-[7px] font-black ${cell.dateText === today ? "bg-white text-[#171717]" : "bg-[#f5f5f5] text-[#525252]"}`}>{dayEvents.length}</p>}
-                          </div>
-                          <div className="space-y-0.5">
-                            {dayEvents.map((event) => (
-                              <details suppressHydrationWarning key={`mobile-month-event-${event.id}`}>
-                                <summary className={`cursor-pointer list-none border px-0.5 py-0.5 font-bold leading-tight ${event.range_position === "start" ? "rounded-l-full rounded-r-none" : event.range_position === "middle" ? "rounded-none border-x-0" : event.range_position === "end" ? "rounded-l-none rounded-r-full" : "rounded-none"} ${cell.dateText === today ? "border-white/25 bg-white text-[#171717]" : event.color}`}>
-                                  <span className="block whitespace-nowrap text-[clamp(6px,1.1vw,8px)]">
-                                    {event.event_time ? `${event.event_time} ` : ""}{event.studentName !== "나" && !event.title.startsWith(event.studentName) ? `${event.studentName} ` : ""}{event.title}
-                                  </span>
-                                </summary>
-                                <div className="fixed inset-0 z-[70] bg-black/45" aria-hidden="true" />
-                                <div className="fixed left-1/2 top-1/2 z-[80] w-[min(88vw,300px)] -translate-x-1/2 -translate-y-1/2 rounded-[16px] bg-[#171717] p-3 text-white shadow-2xl">
-                                  <div className="mb-2 flex items-center justify-between gap-2">
-                                    <p className="truncate text-xs font-black">{event.title}</p>
-                                    <span className="text-[9px] font-bold text-white/60">다시 누르면 닫힘</span>
-                                  </div>
-                                  <CloseOnSubmitForm action={updateMonthlyEvent} className="grid gap-1.5">
-                                    <input type="hidden" name="source_type" value={event.sourceType} />
-                                    <input type="hidden" name="source_id" value={event.sourceId} />
-                                    <input type="hidden" name="student_id" value={event.studentId} />
-                                    <input type="date" name="event_date" defaultValue={event.range_start || event.event_date} className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                                    {event.sourceType === "personal_event" && (
-                                      <input type="date" name="end_date" defaultValue={event.range_end || event.event_date} className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                                    )}
-                                    {event.sourceType !== "feedback" && (
-                                      <div className="grid grid-cols-2 gap-1">
-                                        <input name="event_time" defaultValue={event.event_time || ""} placeholder="시작" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                                        <input name="end_time" defaultValue={event.end_time || ""} placeholder="끝" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                                      </div>
-                                    )}
-                                    {event.sourceType === "personal_event" && (
-                                      <>
-                                        <input name="title" defaultValue={event.title} placeholder="일정 이름" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                                        <input name="memo" defaultValue={stripRangeEndMarker(event.memo)} placeholder="메모" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                                      </>
-                                    )}
-                                    {event.sourceType === "student_event" && (
-                                      <>
-                                        <input name="title" defaultValue={event.title} placeholder="일정 이름" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                                        <input name="memo" defaultValue={event.memo || ""} placeholder="메모" className="w-full rounded-lg border border-white/15 bg-white px-2 py-1.5 text-[11px] text-[#171717] outline-none" />
-                                      </>
-                                    )}
-                                    <div className="grid grid-cols-2 gap-1">
-                                      <button className="rounded-lg bg-white px-2 py-1.5 text-[11px] font-black text-[#171717]">수정</button>
-                                      <button formAction={deleteMonthlyEvent} className="rounded-lg bg-white/15 px-2 py-1.5 text-[11px] font-black text-white">삭제</button>
-                                    </div>
-                                  </CloseOnSubmitForm>
-                                </div>
-                              </details>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-          <details suppressHydrationWarning className="mt-2 rounded-[14px] border border-[#e5e5e5] bg-[#f7f7f7] px-2.5 py-1.5">
-            <summary className="cursor-pointer list-none text-[11px] font-black text-[#171717]">+ 내 일정 추가</summary>
-            <form action={addPersonalEvent} className="mt-2 grid gap-1.5">
-              <input type="date" name="event_date" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-              <input type="date" name="end_date" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-              <div className="grid grid-cols-2 gap-1">
-                <input name="event_time" placeholder="시작" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-                <input name="end_time" placeholder="끝" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-              </div>
-              <input name="title" placeholder="일정 이름" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-              <input name="memo" placeholder="메모" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
-              <button className="rounded-lg bg-[#171717] px-2 py-1.5 text-[11px] font-black text-white">추가</button>
-            </form>
-          </details>
-        </section>
-      </div>
-
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-[#e5e5e5] bg-white/85 px-2 py-2 backdrop-blur-xl md:hidden">
-        <div className="mx-auto grid max-w-[390px] grid-cols-3 gap-1">
-          {[
-            ["⌂", "수업", `/?tab=lessons&lessonMonth=${lessonMonthParam}&calendarMonth=${calendarMonthParam}`],
-            ["□", "일정", `/?tab=schedule&lessonMonth=${lessonMonthParam}&calendarMonth=${calendarMonthParam}`],
-            ["₩", "정산", "/payments"],
-          ].map(([symbol, label, href]) => (
-            <a
-              key={href}
-              href={href}
-              className={`grid gap-0.5 rounded-xl px-1 py-1 text-center font-black ${label === "수업" && mobileTab === "lessons" || label === "일정" && mobileTab === "schedule" || label === "학생" && mobileTab === "students" ? "bg-[#f5f5f5] text-[#171717]" : "text-[#737373]"}`}
-            >
-              <span className="text-[14px] leading-none">{symbol}</span>
-              <span className="text-[8px] leading-none">{label}</span>
-            </a>
-          ))}
-        </div>
-      </nav>
-
-      <div className="mx-auto hidden max-w-7xl space-y-6 md:block">
-        <header className="rounded-[2rem] border border-[#e5e5e5] bg-white/90 p-6 shadow-sm">
+    <main className="min-h-screen bg-[#fff7fa] px-5 py-8 text-[#3f3437]">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <header className="rounded-[2rem] border border-[#f0d6df] bg-white/90 p-6 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.28em] text-[#525252]">
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-[#d18aa0]">
                 Today’s daily dashboard
               </p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-[#171717]">
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-[#4a343b]">
                 오늘 하루도 열심히 ~
               </h1>
             </div>
@@ -2247,31 +1604,33 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 href="/payments"
                 aria-label="월별정산"
                 title="월별정산"
-                className="group flex h-9 w-9 items-center justify-center rounded-xl border border-[#e5e5e5] bg-white text-[#171717] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#f7f7f7]"
+                className="group flex h-20 w-20 items-center justify-center rounded-[1.75rem] border border-[#f1cbd8] bg-[#fff0f6] text-center text-xs font-black text-[#d85f8c] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#ffe4ef]"
               >
-                <span aria-hidden="true" className="text-sm transition group-hover:scale-105">
-                  ₩
+                <span className="transition group-hover:scale-105">
+                  월별
+                  <br />
+                  정산
                 </span>
               </Link>
             </div>
           </div>
 
-          <section className="mt-6 rounded-[1.75rem] border border-[#e5e5e5] bg-[#f5f5f5] p-5">
+          <section className="mt-6 rounded-[1.75rem] border border-[#f2d9e1] bg-[#fffafb] p-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-xs font-bold text-[#525252]">
-                  {formatShortDate(progress.startDate)} ~{" "}
-                  {formatShortDate(progress.endDate)}
+                <p className="text-xs font-bold text-[#9a7682]">
+                  {formatShortDate(activePeriod.startDate)} ~{" "}
+                  {formatShortDate(activePeriod.endDate)} 기준
                 </p>
               </div>
-              <p className="text-3xl font-black text-[#171717]">
+              <p className="text-3xl font-black text-[#d85f8c]">
                 {progress.percent}%
               </p>
             </div>
 
-            <div className="mt-4 h-4 overflow-hidden rounded-full bg-[#d4d4d4]">
+            <div className="mt-4 h-4 overflow-hidden rounded-full bg-[#f6dbe5]">
               <div
-                className="h-full rounded-full bg-[#171717] transition-all"
+                className="h-full rounded-full bg-[#e54f86] transition-all"
                 style={{ width: `${progress.percent}%` }}
               />
             </div>
@@ -2279,7 +1638,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         </header>
 
         <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <article className="rounded-[2rem] border border-[#e5e5e5] bg-white p-6 shadow-sm">
+          <article className="rounded-[2rem] border border-[#f2d5df] bg-white p-6 shadow-sm">
             <input
               id="show-mine-timeline"
               type="checkbox"
@@ -2288,7 +1647,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-sm font-black text-[#82776d]">TODAY</p>
+                <p className="text-sm font-black text-[#cc7b93]">TODAY</p>
                 <h2 className="text-2xl font-black">오늘의 일정</h2>
                 <p className="mt-1 text-sm font-semibold text-[#9b7a84]">
                   오늘의 수업 모아보기
@@ -2296,25 +1655,25 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </div>
               <label
                 htmlFor="show-mine-timeline"
-                className="cursor-pointer rounded-full border border-[#d4d4d4] bg-[#f7f7f7] px-3 py-1.5 text-xs font-black text-[#404040] transition peer-checked/timeline:bg-[#171717] peer-checked/timeline:text-white"
+                className="cursor-pointer rounded-full border border-[#efcbd4] bg-[#fff8fb] px-3 py-1.5 text-xs font-black text-[#a66b7d] transition peer-checked/timeline:bg-[#e74786] peer-checked/timeline:text-white"
               >
                 나만보기
               </label>
             </div>
 
             {todayItems.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#d4d4d4] bg-[#f7f7f7] px-5 py-6 text-center text-sm font-bold text-[#525252]">
+              <div className="rounded-2xl border border-dashed border-[#f0c8d5] bg-[#fff8fa] px-5 py-6 text-center text-sm font-bold text-[#a98591]">
                 오예 오늘은 휴일이당 ~
               </div>
             ) : (
               <div className="relative pl-9 peer-checked/timeline:[&_.mine-timeline-event]:block">
-                <div className="absolute left-3 top-2 h-[calc(100%-1rem)] w-2 rounded-full bg-[#e5e5e5]">
+                <div className="absolute left-3 top-2 h-[calc(100%-1rem)] w-2 rounded-full bg-[#f7dce5]">
                   <div
-                    className="w-full rounded-full bg-[#171717] transition-all"
+                    className="w-full rounded-full bg-[#df5d8a] transition-all"
                     style={{ height: `${timelinePercent}%` }}
                   />
                   <div
-                    className="pointer-events-none absolute left-1/2 z-30 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#C8BAC6] bg-white text-base shadow-[0_4px_10px_rgba(232,79,134,0.28)]"
+                    className="pointer-events-none absolute left-1/2 z-30 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#f5bfd1] bg-white text-base shadow-[0_4px_10px_rgba(232,79,134,0.28)]"
                     style={{ top: `${timelinePercent}%` }}
                     aria-label="현재 위치"
                   >
@@ -2325,7 +1684,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                   {todayItems.map((item) => (
                     <div key={item.id} className="relative">
                       <div
-                        className={`relative rounded-none border px-4 py-3 ${item.sourceType === "personal_day_event" ? "mine-timeline-event hidden" : ""} ${item.color}`}
+                        className={`relative rounded-2xl border px-4 py-3 ${item.sourceType === "personal_day_event" ? "mine-timeline-event hidden" : ""} ${item.color}`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -2348,13 +1707,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                                 <summary className="cursor-pointer list-none rounded-xl bg-white/80 px-3 py-2 text-xs font-black">
                                   수정
                                 </summary>
-                                <div className="fixed left-1/2 top-24 z-50 w-[min(94vw,720px)] -translate-x-1/2 rounded-[2rem] border border-[#d4d4d4] bg-white p-5 text-[#171717] shadow-2xl">
+                                <div className="fixed left-1/2 top-24 z-50 w-[min(94vw,720px)] -translate-x-1/2 rounded-[2rem] border border-[#efafc9] bg-white p-5 text-[#3f3437] shadow-2xl">
                                   <div className="mb-4 flex items-start justify-between gap-3">
                                     <div>
-                                      <p className="text-xs font-black text-[#171717]">내 일정 수정</p>
+                                      <p className="text-xs font-black text-[#e74786]">내 일정 수정</p>
                                       <h3 className="mt-1 text-lg font-black">오늘의 개인 일정</h3>
                                     </div>
-                                    <span className="rounded-full bg-[#f7f7f7] px-3 py-1 text-xs font-black text-[#171717]">
+                                    <span className="rounded-full bg-[#fff1f7] px-3 py-1 text-xs font-black text-[#b93468]">
                                       다시 누르면 닫힘
                                     </span>
                                   </div>
@@ -2365,40 +1724,40 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                                       type="date"
                                       name="event_date"
                                       defaultValue={item.date}
-                                      className="rounded-xl border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none"
+                                      className="rounded-xl border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none"
                                     />
                                     <input
                                       name="start_time"
                                       defaultValue={item.startTime}
                                       placeholder="시작"
-                                      className="rounded-xl border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none"
+                                      className="rounded-xl border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none"
                                     />
                                     <input
                                       name="end_time"
                                       defaultValue={item.endTime}
                                       placeholder="끝"
-                                      className="rounded-xl border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none"
+                                      className="rounded-xl border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none"
                                     />
                                     <input
                                       name="title"
                                       defaultValue={item.title.replace(/^💗\s*/, "")}
                                       placeholder="일정 이름"
-                                      className="rounded-xl border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none"
+                                      className="rounded-xl border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none"
                                     />
-                                    <button className="rounded-xl bg-[#171717] px-3 py-2 text-sm font-black text-white">
+                                    <button className="rounded-xl bg-[#e74786] px-3 py-2 text-sm font-black text-white">
                                       저장
                                     </button>
                                     <input
                                       name="memo"
                                       defaultValue={item.memo || ""}
                                       placeholder="메모"
-                                      className="rounded-xl border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none md:col-span-5"
+                                      className="rounded-xl border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none md:col-span-5"
                                     />
                                   </form>
 
                                   <form action={deletePersonalDayEvent} className="mt-2">
                                     <input type="hidden" name="event_id" value={item.sourceId} />
-                                    <button className="rounded-xl border border-[#b7aaa0] bg-[#f6f1ed] px-3 py-2 text-xs font-black text-[#171717]">
+                                    <button className="rounded-xl border border-[#e98bb1] bg-[#fff5f8] px-3 py-2 text-xs font-black text-[#b93468]">
                                       삭제
                                     </button>
                                   </form>
@@ -2428,9 +1787,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </div>
             )}
 
-            <div className="mt-5 hidden rounded-2xl border border-[#d4d4d4] bg-[#f7f7f7] p-4 peer-checked/timeline:block">
+            <div className="mt-5 hidden rounded-2xl border border-[#efafc9] bg-[#fff1f7] p-4 peer-checked/timeline:block">
               <details>
-                <summary className="cursor-pointer list-none text-sm font-black text-[#171717]">
+                <summary className="cursor-pointer list-none text-sm font-black text-[#b93468]">
                   💗 내 일정 추가
                 </summary>
                 <form
@@ -2441,24 +1800,24 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                   <input
                     name="start_time"
                     placeholder="시작 13:00"
-                    className="border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none"
+                    className="border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none"
                   />
                   <input
                     name="end_time"
                     placeholder="끝 15:00"
-                    className="border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none"
+                    className="border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none"
                   />
                   <input
                     name="title"
                     placeholder="일정 이름"
-                    className="border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none md:col-span-2"
+                    className="border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none md:col-span-2"
                   />
                   <input
                     name="memo"
                     placeholder="메모"
-                    className="border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none"
+                    className="border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none"
                   />
-                  <button className="bg-[#171717] px-3 py-2 text-sm font-black text-white">
+                  <button className="bg-[#e74786] px-3 py-2 text-sm font-black text-white">
                     추가
                   </button>
                 </form>
@@ -2466,7 +1825,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </div>
           </article>
 
-          <article className="rounded-[2rem] border border-[#e5e5e5] bg-white p-6 shadow-sm">
+          <article className="rounded-[2rem] border border-[#f2d5df] bg-white p-6 shadow-sm">
             <input
               id="show-mine-todo"
               type="checkbox"
@@ -2475,7 +1834,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-sm font-black text-[#82776d]">TASKS</p>
+                <p className="text-sm font-black text-[#cc7b93]">TASKS</p>
                 <h2 className="text-2xl font-black">오늘의 할일</h2>
                 <p className="mt-1 text-sm font-semibold text-[#9b7a84]">
                   미완료/진행중 수행평 모아보기
@@ -2483,7 +1842,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </div>
               <label
                 htmlFor="show-mine-todo"
-                className="cursor-pointer rounded-full border border-[#d4d4d4] bg-[#f7f7f7] px-3 py-1.5 text-xs font-black text-[#404040] transition peer-checked/todo:bg-[#aaa299] peer-checked/todo:text-white"
+                className="cursor-pointer rounded-full border border-[#efcbd4] bg-[#fff8fb] px-3 py-1.5 text-xs font-black text-[#a66b7d] transition peer-checked/todo:bg-[#f4a9c4] peer-checked/todo:text-white"
               >
                 펼치기
               </label>
@@ -2497,13 +1856,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               />
               <label
                 htmlFor="show-personal-todo"
-                className="mb-4 ml-auto flex w-fit cursor-pointer rounded-full border border-[#d4d4d4] bg-[#f7f7f7] px-3 py-1.5 text-xs font-black text-[#404040] transition peer-checked/mine-todo:bg-[#aaa299] peer-checked/mine-todo:text-white"
+                className="mb-4 ml-auto flex w-fit cursor-pointer rounded-full border border-[#efcbd4] bg-[#fff8fb] px-3 py-1.5 text-xs font-black text-[#a66b7d] transition peer-checked/mine-todo:bg-[#f4a9c4] peer-checked/mine-todo:text-white"
               >
                 나만보기
               </label>
 
-              <div className="mb-4 hidden rounded-2xl border border-[#d9d2c7] bg-[#f7f7f7] p-4 peer-checked/mine-todo:block">
-                <p className="mb-3 text-sm font-black text-[#70665e]">
+              <div className="mb-4 hidden rounded-2xl border border-[#f1cfda] bg-[#fff8fb] p-4 peer-checked/mine-todo:block">
+                <p className="mb-3 text-sm font-black text-[#a85d78]">
                   💗 내 할일
                 </p>
                 <form
@@ -2514,27 +1873,27 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                     type="date"
                     name="due_date"
                     defaultValue={today}
-                    className="rounded-xl border border-[#d4d4d4] bg-white px-3 py-2 text-sm outline-none"
+                    className="rounded-xl border border-[#efcbd4] bg-white px-3 py-2 text-sm outline-none"
                   />
                   <input
                     name="title"
                     placeholder="할일 이름"
-                    className="rounded-xl border border-[#d4d4d4] bg-white px-3 py-2 text-sm outline-none"
+                    className="rounded-xl border border-[#efcbd4] bg-white px-3 py-2 text-sm outline-none"
                   />
-                  <button className="rounded-xl bg-[#8f8176] px-4 py-2 text-sm font-black text-white">
+                  <button className="rounded-xl bg-[#e9a2bd] px-4 py-2 text-sm font-black text-white">
                     추가
                   </button>
                 </form>
                 <div className="mt-3 space-y-2">
                   {personalTodos.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-[#d4d4d4] bg-white/70 px-4 py-4 text-center text-xs font-bold text-[#525252]">
+                    <p className="rounded-xl border border-dashed border-[#efcbd4] bg-white/70 px-4 py-4 text-center text-xs font-bold text-[#a98591]">
                       내 할일이 없어요.
                     </p>
                   ) : (
                     personalTodos.map((todo) => (
                       <div
                         key={todo.id}
-                        className={`flex items-center justify-between gap-3 border-l-8 bg-white px-3 py-2 shadow-sm ${todo.is_done ? "border-[#d6c4cd] opacity-60" : "border-[#aaa299]"}`}
+                        className={`flex items-center justify-between gap-3 border-l-8 bg-white px-3 py-2 shadow-sm ${todo.is_done ? "border-[#d6c4cd] opacity-60" : "border-[#f4a9c4]"}`}
                       >
                         <form
                           action={togglePersonalTodo}
@@ -2547,24 +1906,24 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                             value={String(Boolean(todo.is_done))}
                           />
                           <button
-                            className={`flex h-5 w-5 shrink-0 items-center justify-center border text-xs font-black ${todo.is_done ? "border-[#b7a2ad] bg-[#f0e5ea] text-[#7f6873]" : "border-[#aaa299] bg-[#ffffff] text-[#171717]"}`}
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center border text-xs font-black ${todo.is_done ? "border-[#b7a2ad] bg-[#f0e5ea] text-[#7f6873]" : "border-[#f4a9c4] bg-[#fff0f6] text-[#d87598]"}`}
                           >
                             {todo.is_done ? "✓" : ""}
                           </button>
-                          <span className="shrink-0 text-xs font-black text-[#70665e]">
+                          <span className="shrink-0 text-xs font-black text-[#a85d78]">
                             {todo.due_date
                               ? formatShortDate(todo.due_date)
                               : "날짜 없음"}
                           </span>
                           <p
-                            className={`min-w-0 flex-1 truncate text-sm font-black text-[#171717] ${todo.is_done ? "line-through" : ""}`}
+                            className={`min-w-0 flex-1 truncate text-sm font-black text-[#502b38] ${todo.is_done ? "line-through" : ""}`}
                           >
                             {todo.title}
                           </p>
                         </form>
                         <form action={deletePersonalTodo}>
                           <input type="hidden" name="todo_id" value={todo.id} />
-                          <button className="px-2 py-1 text-xs font-black text-[#70665e]">
+                          <button className="px-2 py-1 text-xs font-black text-[#a85d78]">
                             삭제
                           </button>
                         </form>
@@ -2576,7 +1935,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
               <div>
                 {performanceTasks.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#d4d4d4] bg-[#f7f7f7] px-5 py-8 text-center text-sm font-bold text-[#525252]">
+                <div className="rounded-2xl border border-dashed border-[#f0c8d5] bg-[#fff8fa] px-5 py-8 text-center text-sm font-bold text-[#a98591]">
                   오예 진행 중인 수행평가가 없어요.
                 </div>
               ) : (
@@ -2586,15 +1945,15 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                     return (
                       <div
                         key={task.id}
-                        className="rounded-2xl border border-[#e5e5e5] bg-[#f5f5f5] p-4"
+                        className="rounded-2xl border border-[#f0d6df] bg-[#fffafb] p-4"
                       >
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div>
                             <div className="flex flex-wrap gap-2">
-                              <span className="rounded-full bg-[#f7f7f7] px-3 py-1 text-xs font-black text-[#171717]">
+                              <span className="rounded-full bg-[#fff1f5] px-3 py-1 text-xs font-black text-[#9f5264]">
                                 {getStudentName(task.student_id, students)}
                               </span>
-                              <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#171717]">
+                              <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#8f6270]">
                                 {task.subject}
                               </span>
                               <span className="rounded-full bg-[#f5f0ff] px-3 py-1 text-xs font-black text-[#6d5ba8]">
@@ -2603,15 +1962,15 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                                   : "미완료"}
                               </span>
                               {badge && (
-                                <span className="rounded-full bg-[#e6ded6] px-3 py-1 text-xs font-black text-[#d63f6f]">
+                                <span className="rounded-full bg-[#ffe1ec] px-3 py-1 text-xs font-black text-[#d63f6f]">
                                   {badge}
                                 </span>
                               )}
                             </div>
-                            <p className="mt-3 text-base font-black text-[#171717]">
+                            <p className="mt-3 text-base font-black text-[#3f3437]">
                               {task.title}
                             </p>
-                            <p className="mt-1 text-xs font-bold text-[#525252]">
+                            <p className="mt-1 text-xs font-bold text-[#9a7682]">
                               {formatShortDate(task.due_date)}{" "}
                               {normalizeTime(task.due_time)}
                             </p>
@@ -2628,7 +1987,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                               name="student_id"
                               value={task.student_id}
                             />
-                            <button className="rounded-xl bg-[#171717] px-4 py-2 text-xs font-black text-white">
+                            <button className="rounded-xl bg-[#d87598] px-4 py-2 text-xs font-black text-white">
                               완료
                             </button>
                           </form>
@@ -2648,9 +2007,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                             name="memo"
                             defaultValue={task.memo || ""}
                             placeholder="메모 추가"
-                            className="min-w-0 flex-1 rounded-xl border border-[#d4d4d4] bg-white px-4 py-2 text-sm outline-none"
+                            className="min-w-0 flex-1 rounded-xl border border-[#efcbd4] bg-white px-4 py-2 text-sm outline-none"
                           />
-                          <button className="rounded-xl border border-[#d4d4d4] bg-[#f7f7f7] px-4 py-2 text-xs font-black text-[#171717]">
+                          <button className="rounded-xl border border-[#efcbd4] bg-[#fff1f5] px-4 py-2 text-xs font-black text-[#9f5264]">
                             저장
                           </button>
                         </form>
@@ -2664,11 +2023,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </article>
         </section>
 
-        <section className="rounded-[2rem] border border-[#e5e5e5] bg-white p-6 shadow-sm">
+        <section className="rounded-[2rem] border border-[#f0d6df] bg-white p-6 shadow-sm">
           <div className="mb-5">
-            <p className="text-sm font-black text-[#525252]">WEEKLY LESSONS</p>
+            <p className="text-sm font-black text-[#d18aa0]">WEEKLY LESSONS</p>
             <h2 className="text-2xl font-black">이번주 수업 스케줄</h2>
-            <p className="mt-1 text-sm font-semibold text-[#525252]">
+            <p className="mt-1 text-sm font-semibold text-[#9a7682]">
               학생 캘린더 연동
             </p>
           </div>
@@ -2679,19 +2038,19 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               return (
                 <div
                   key={dateText}
-                  className="rounded-3xl border border-[#e5e5e5] bg-[#f5f5f5] p-3"
+                  className="rounded-3xl border border-[#f0d6df] bg-[#fffafb] p-3"
                 >
                   <div className="mb-3 text-center">
-                    <p className="text-xs font-black text-[#525252]">
+                    <p className="text-xs font-black text-[#d18aa0]">
                       {getDayLabel(dateText)}
                     </p>
-                    <p className="text-sm font-black text-[#171717]">
+                    <p className="text-sm font-black text-[#4a343b]">
                       {formatShortDate(dateText)}
                     </p>
                   </div>
 
                   {dayItems.length === 0 ? (
-                    <p className="rounded-2xl border border-dashed border-[#d4d4d4] bg-white px-3 py-4 text-center text-xs font-bold text-[#525252]">
+                    <p className="rounded-2xl border border-dashed border-[#efcbd4] bg-white px-3 py-4 text-center text-xs font-bold text-[#b08c97]">
                       오예
                     </p>
                   ) : (
@@ -2699,7 +2058,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                       {dayItems.map((item) => (
                         <details
                           key={item.id}
-                          className={`rounded-none border p-3 ${item.color}`}
+                          className={`rounded-2xl border p-3 ${item.color}`}
                         >
                           <summary className="cursor-pointer list-none">
                             <p className="text-xs font-black">
@@ -2786,44 +2145,44 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             })}
           </div>
 
-          <details className="mt-6 rounded-[1.75rem] border border-[#e5e5e5] bg-[#f5f5f5] p-4">
-            <summary className="cursor-pointer list-none rounded-2xl border border-[#cfc4ba] bg-white px-4 py-3 text-sm font-black text-[#404040] shadow-sm transition hover:-translate-y-0.5">
+          <details className="mt-6 rounded-[1.75rem] border border-[#f0d6df] bg-[#fffafb] p-4">
+            <summary className="cursor-pointer list-none rounded-2xl border border-[#f0bdcf] bg-white px-4 py-3 text-sm font-black text-[#a66b7d] shadow-sm transition hover:-translate-y-0.5">
               📅 먼슬리 수업스케줄 보기
             </summary>
 
-            <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-[#e5e5e5] bg-[#f5f5f5] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-[#f0d6df] bg-[#fffafb] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs font-black text-[#525252]">MONTHLY LESSONS</p>
-                <p className="text-lg font-black text-[#171717]">{formatMonthTitle(lessonScheduleMonthInfo)}</p>
+                <p className="text-xs font-black text-[#d18aa0]">MONTHLY LESSONS</p>
+                <p className="text-lg font-black text-[#4a343b]">{formatMonthTitle(lessonScheduleMonthInfo)}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link
                   href={`/?lessonMonth=${addMonthsToParam(lessonMonthParam, -1)}&calendarMonth=${calendarMonthParam}`}
-                  className="rounded-full border border-[#d4d4d4] bg-white px-3 py-1.5 text-xs font-black text-[#171717]"
+                  className="rounded-full border border-[#efcbd4] bg-white px-3 py-1.5 text-xs font-black text-[#9f5264]"
                 >
                   이전달
                 </Link>
                 <Link
                   href={`/?lessonMonth=${monthParamFromInfo(currentMonthInfo)}&calendarMonth=${calendarMonthParam}`}
-                  className="rounded-full border border-[#d4d4d4] bg-white px-3 py-1.5 text-xs font-black text-[#171717]"
+                  className="rounded-full border border-[#efcbd4] bg-white px-3 py-1.5 text-xs font-black text-[#9f5264]"
                 >
                   이번달
                 </Link>
                 <Link
                   href={`/?lessonMonth=${addMonthsToParam(lessonMonthParam, 1)}&calendarMonth=${calendarMonthParam}`}
-                  className="rounded-full border border-[#d4d4d4] bg-white px-3 py-1.5 text-xs font-black text-[#171717]"
+                  className="rounded-full border border-[#efcbd4] bg-white px-3 py-1.5 text-xs font-black text-[#9f5264]"
                 >
                   다음달
                 </Link>
               </div>
             </div>
 
-            <div className="mt-4 overflow-hidden rounded-[1.75rem] border border-[#e5e5e5] bg-white">
-              <div className="grid grid-cols-7 bg-[#f7f7f7]">
+            <div className="mt-4 overflow-hidden rounded-[1.75rem] border border-[#f0d6df] bg-white">
+              <div className="grid grid-cols-7 bg-[#fff1f5]">
                 {WEEKDAYS_MON.map((day) => (
                   <div
                     key={`monthly-lesson-day-${day}`}
-                    className="border-r border-[#e5e5e5] px-3 py-3 text-center text-xs font-black text-[#171717] last:border-r-0"
+                    className="border-r border-[#f0d6df] px-3 py-3 text-center text-xs font-black text-[#9f5264] last:border-r-0"
                   >
                     {day}
                   </div>
@@ -2839,22 +2198,22 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                   return (
                     <div
                       key={`monthly-lesson-${cell.dateText || "blank"}-${index}`}
-                      className={`min-h-[150px] border-r border-t border-[#e5e5e5] p-2 last:border-r-0 ${
+                      className={`min-h-[150px] border-r border-t border-[#f0d6df] p-2 last:border-r-0 ${
                         cell.dateText === today
-                          ? "bg-[#e5e5e5] ring-2 ring-inset ring-[#8d8177]"
+                          ? "bg-[#ffe4ef] ring-2 ring-inset ring-[#ee8caf]"
                           : cell.dateText
                             ? "bg-white"
-                            : "bg-[#f5f5f5]"
+                            : "bg-[#fffafb]"
                       }`}
                     >
                       {cell.dateText && (
                         <>
                           <div className="mb-2 flex items-center justify-between">
-                            <span className="text-xs font-black text-[#171717]">
+                            <span className="text-xs font-black text-[#4a343b]">
                               {cell.day}
                             </span>
                             {lessonItems.length > 0 && (
-                              <span className="rounded-full bg-[#f7f7f7] px-2 py-0.5 text-[10px] font-black text-[#171717]">
+                              <span className="rounded-full bg-[#fff1f5] px-2 py-0.5 text-[10px] font-black text-[#9f5264]">
                                 {lessonItems.length}
                               </span>
                             )}
@@ -2864,7 +2223,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                             {lessonItems.map((item) => (
                               <details
                                 key={`monthly-lesson-item-${item.id}`}
-                                className={`rounded-none border px-2 py-1 text-[11px] font-bold leading-snug ${item.color}`}
+                                className={`rounded-xl border px-2 py-1 text-[11px] font-bold leading-snug ${item.color}`}
                               >
                                 <summary className="cursor-pointer list-none">
                                   <span className="block truncate">
@@ -2950,93 +2309,36 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 })}
               </div>
             </div>
-
-            <form
-              action={addDashboardLessonEvent}
-              className="mt-4 grid gap-2 rounded-[1.5rem] border border-[#e5e5e5] bg-white px-4 py-4 md:grid-cols-6"
-            >
-              <div className="md:col-span-6">
-                <p className="text-xs font-black text-[#525252]">
-                  LESSON ADD
-                </p>
-                <p className="text-sm font-black text-[#171717]">
-                  학생 수업 추가
-                </p>
-              </div>
-              <select
-                name="student_id"
-                className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-bold outline-none"
-                required
-              >
-                <option value="">학생</option>
-                {students.map((student) => (
-                  <option key={`lesson-add-student-${student.id}`} value={student.id}>
-                    {student.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="date"
-                name="event_date"
-                defaultValue={today}
-                className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-bold outline-none"
-                required
-              />
-              <input
-                name="event_time"
-                placeholder="시간"
-                className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-bold outline-none"
-              />
-              <select
-                name="event_type"
-                defaultValue="수업"
-                className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-bold outline-none"
-              >
-                {LESSON_EVENT_TYPES.map((type) => (
-                  <option key={`lesson-add-type-${type}`} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-              <input
-                name="memo"
-                placeholder="메모"
-                className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-bold outline-none md:col-span-2"
-              />
-              <button className="rounded-xl bg-[#171717] px-3 py-2 text-sm font-black text-white md:col-span-6">
-                수업 추가
-              </button>
-            </form>
           </details>
         </section>
 
-        <section className="rounded-[2rem] border border-[#e5e5e5] bg-white p-6 shadow-sm">
+        <section className="rounded-[2rem] border border-[#f0d6df] bg-white p-6 shadow-sm">
           <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-sm font-black text-[#525252]">
+              <p className="text-sm font-black text-[#d18aa0]">
                 MONTHLY CALENDAR
               </p>
               <h2 className="text-2xl font-black">이번달 스케줄</h2>
-              <p className="mt-1 text-sm font-semibold text-[#525252]">
+              <p className="mt-1 text-sm font-semibold text-[#9a7682]">
                 {formatMonthTitle(calendarMonthInfo)} · 수행평가·시험·피드백·기타 일정만 모아보기
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
                 href={`/?lessonMonth=${lessonMonthParam}&calendarMonth=${addMonthsToParam(calendarMonthParam, -1)}`}
-                className="rounded-full border border-[#d4d4d4] bg-[#f5f5f5] px-3 py-1.5 text-xs font-black text-[#171717]"
+                className="rounded-full border border-[#efcbd4] bg-[#fffafb] px-3 py-1.5 text-xs font-black text-[#9f5264]"
               >
                 이전달
               </Link>
               <Link
                 href={`/?lessonMonth=${lessonMonthParam}&calendarMonth=${monthParamFromInfo(currentMonthInfo)}`}
-                className="rounded-full border border-[#d4d4d4] bg-[#f5f5f5] px-3 py-1.5 text-xs font-black text-[#171717]"
+                className="rounded-full border border-[#efcbd4] bg-[#fffafb] px-3 py-1.5 text-xs font-black text-[#9f5264]"
               >
                 이번달
               </Link>
               <Link
                 href={`/?lessonMonth=${lessonMonthParam}&calendarMonth=${addMonthsToParam(calendarMonthParam, 1)}`}
-                className="rounded-full border border-[#d4d4d4] bg-[#f5f5f5] px-3 py-1.5 text-xs font-black text-[#171717]"
+                className="rounded-full border border-[#efcbd4] bg-[#fffafb] px-3 py-1.5 text-xs font-black text-[#9f5264]"
               >
                 다음달
               </Link>
@@ -3048,19 +2350,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             type="checkbox"
             className="peer/calendar sr-only"
           />
-          <input
-            id="show-feedback-calendar"
-            type="checkbox"
-            className="peer/feedback sr-only"
-          />
 
-          <div className="peer-checked/calendar:[&_.personal-calendar-event]:block peer-checked/calendar:[&_.personal-calendar-form]:grid peer-checked/calendar:[&_.personal-calendar-label]:bg-[#171717] peer-checked/calendar:[&_.personal-calendar-label]:text-white peer-checked/feedback:[&_.feedback-calendar-event]:block peer-checked/feedback:[&_.feedback-calendar-label]:bg-[#171717] peer-checked/feedback:[&_.feedback-calendar-label]:text-white">
-            <div className="mt-4 overflow-hidden rounded-[1.75rem] border border-[#e5e5e5] bg-white">
-              <div className="grid grid-cols-7 bg-[#f7f7f7]">
+          <div className="peer-checked/calendar:[&_.personal-calendar-event]:block peer-checked/calendar:[&_.personal-calendar-form]:grid peer-checked/calendar:[&_.personal-calendar-label]:bg-[#e74786] peer-checked/calendar:[&_.personal-calendar-label]:text-white">
+            <div className="mt-4 overflow-hidden rounded-[1.75rem] border border-[#f0d6df] bg-white">
+              <div className="grid grid-cols-7 bg-[#fff1f5]">
                 {WEEKDAYS_MON.map((day) => (
                   <div
                     key={day}
-                    className="border-r border-[#e5e5e5] px-3 py-3 text-center text-xs font-black text-[#171717] last:border-r-0"
+                    className="border-r border-[#f0d6df] px-3 py-3 text-center text-xs font-black text-[#9f5264] last:border-r-0"
                   >
                     {day}
                   </div>
@@ -3069,52 +2366,45 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
               <div className="grid grid-cols-7 bg-white">
                 {monthlyCalendarDays.map((cell, index) => {
-                  const allDateEvents = cell.dateText
+                  const dateEvents = cell.dateText
                     ? monthlyEventsByDate[cell.dateText] || []
                     : [];
-                  const visibleDateEvents = allDateEvents.filter(
-                    (event) =>
-                      event.sourceType !== "personal_event" &&
-                      event.sourceType !== "feedback",
-                  );
                   return (
                     <div
                       key={`${cell.dateText || "blank"}-${index}`}
-                      className={`min-h-[132px] border-r border-t border-[#e5e5e5] p-2 last:border-r-0 ${
+                      className={`min-h-[132px] border-r border-t border-[#f0d6df] p-2 last:border-r-0 ${
                         cell.dateText === today
-                          ? "bg-[#e5e5e5] ring-2 ring-inset ring-[#8d8177]"
+                          ? "bg-[#ffe4ef] ring-2 ring-inset ring-[#ee8caf]"
                           : cell.dateText
                             ? "bg-white"
-                            : "bg-[#f5f5f5]"
+                            : "bg-[#fffafb]"
                       }`}
                     >
                       {cell.dateText && (
                         <>
                           <div className="mb-2 flex items-center justify-between">
-                            <span className="text-xs font-black text-[#171717]">
+                            <span className="text-xs font-black text-[#4a343b]">
                               {cell.day}
                             </span>
-                            {visibleDateEvents.length > 0 && (
-                              <span className="rounded-full bg-[#f7f7f7] px-2 py-0.5 text-[10px] font-black text-[#171717]">
-                                {visibleDateEvents.length}
+                            {dateEvents.length > 0 && (
+                              <span className="rounded-full bg-[#fff1f5] px-2 py-0.5 text-[10px] font-black text-[#9f5264]">
+                                {dateEvents.length}
                               </span>
                             )}
                           </div>
 
                           <div className="space-y-1">
-                            {allDateEvents.map((event) => (
+                            {dateEvents.map((event) => (
                               <details
                                 key={event.id}
                                 className={
                                   event.sourceType === "personal_event"
                                     ? "personal-calendar-event hidden"
-                                    : event.sourceType === "feedback"
-                                      ? "feedback-calendar-event hidden"
                                     : ""
                                 }
                               >
                                 <summary
-                                  className={`cursor-pointer list-none border-l-[10px] px-2 py-1 text-[11px] font-bold leading-snug ${event.range_position === "start" ? "rounded-l-full rounded-r-none" : event.range_position === "middle" ? "rounded-none border-x-0" : event.range_position === "end" ? "rounded-l-none rounded-r-full" : "rounded-none"} ${event.color}`}
+                                  className={`cursor-pointer list-none rounded-lg border-l-4 px-2 py-1 text-[11px] font-bold leading-snug ${event.color}`}
                                 >
                                   <span className="block truncate">
                                     {event.sourceType === "personal_event"
@@ -3122,7 +2412,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                                       : `${event.event_time ? `${event.event_time} ` : ""}${event.title}`}
                                   </span>
                                 </summary>
-                                <div className="mt-1 rounded-xl border border-[#e5e5e5] bg-white p-1">
+                                <div className="mt-1 rounded-xl border border-[#f0d6df] bg-white p-1">
                                   <form
                                     action={updateMonthlyEvent}
                                     className="space-y-1"
@@ -3145,30 +2435,22 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                                     <input
                                       type="date"
                                       name="event_date"
-                                      defaultValue={event.range_start || event.event_date}
-                                      className="w-full rounded-lg border border-[#e5e5e5] px-2 py-1 text-[10px] outline-none"
+                                      defaultValue={event.event_date}
+                                      className="w-full rounded-lg border border-[#f0d6df] px-2 py-1 text-[10px] outline-none"
                                     />
-                                    {event.sourceType === "personal_event" && (
-                                      <input
-                                        type="date"
-                                        name="end_date"
-                                        defaultValue={event.range_end || event.event_date}
-                                        className="w-full rounded-lg border border-[#e5e5e5] px-2 py-1 text-[10px] outline-none"
-                                      />
-                                    )}
                                     {event.sourceType !== "feedback" && (
                                       <div className="grid grid-cols-2 gap-1">
                                         <input
                                           name="event_time"
                                           defaultValue={event.event_time || ""}
                                           placeholder="시작"
-                                          className="w-full border border-[#e5e5e5] px-2 py-1 text-[10px] outline-none"
+                                          className="w-full border border-[#f0d6df] px-2 py-1 text-[10px] outline-none"
                                         />
                                         <input
                                           name="end_time"
                                           defaultValue={event.end_time || ""}
                                           placeholder="끝"
-                                          className="w-full border border-[#e5e5e5] px-2 py-1 text-[10px] outline-none"
+                                          className="w-full border border-[#f0d6df] px-2 py-1 text-[10px] outline-none"
                                         />
                                       </div>
                                     )}
@@ -3178,17 +2460,17 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                                           name="title"
                                           defaultValue={event.title}
                                           placeholder="일정 이름"
-                                          className="w-full rounded-lg border border-[#e5e5e5] px-2 py-1 text-[10px] outline-none"
+                                          className="w-full rounded-lg border border-[#f0d6df] px-2 py-1 text-[10px] outline-none"
                                         />
                                         <input
                                           name="memo"
-                                          defaultValue={stripRangeEndMarker(event.memo)}
+                                          defaultValue={event.memo || ""}
                                           placeholder="메모"
-                                          className="w-full rounded-lg border border-[#e5e5e5] px-2 py-1 text-[10px] outline-none"
+                                          className="w-full rounded-lg border border-[#f0d6df] px-2 py-1 text-[10px] outline-none"
                                         />
                                       </>
                                     )}
-                                    <button className="w-full rounded-lg bg-[#f7f7f7] px-2 py-1 text-[10px] font-black text-[#171717]">
+                                    <button className="w-full rounded-lg bg-[#fff1f5] px-2 py-1 text-[10px] font-black text-[#9f5264]">
                                       수정
                                     </button>
                                   </form>
@@ -3226,27 +2508,19 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 })}
               </div>
             </div>
-            <div className="mt-4 rounded-2xl border border-[#e5e5e5] bg-[#f5f5f5] p-3">
+            <div className="mt-4 rounded-2xl border border-[#f0d6df] bg-[#fffafb] p-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-black text-[#404040]">
-                    보기 설정
+                  <p className="text-xs font-black text-[#a66b7d]">
+                    나만 보기 일정
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <label
-                    htmlFor="show-feedback-calendar"
-                    className="feedback-calendar-label w-fit cursor-pointer rounded-full border border-[#cfc4ba] bg-white px-3 py-1.5 text-xs font-black text-[#404040] transition"
-                  >
-                    피드백 보기
-                  </label>
-                  <label
-                    htmlFor="show-mine-calendar"
-                    className="personal-calendar-label w-fit cursor-pointer rounded-full border border-[#cfc4ba] bg-white px-3 py-1.5 text-xs font-black text-[#404040] transition"
-                  >
-                    나만보기
-                  </label>
-                </div>
+                <label
+                  htmlFor="show-mine-calendar"
+                  className="personal-calendar-label w-fit cursor-pointer rounded-full border border-[#f0bdcf] bg-white px-3 py-1.5 text-xs font-black text-[#a66b7d] transition"
+                >
+                  나만보기
+                </label>
               </div>
 
               <form
@@ -3256,35 +2530,30 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 <input
                   type="date"
                   name="event_date"
-                  className="rounded-xl border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none"
-                />
-                <input
-                  type="date"
-                  name="end_date"
-                  className="rounded-xl border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none"
+                  className="rounded-xl border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none"
                 />
                 <input
                   name="event_time"
                   placeholder="시작"
-                  className="rounded-xl border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none"
+                  className="rounded-xl border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none"
                 />
                 <input
                   name="end_time"
                   placeholder="끝"
-                  className="rounded-xl border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none"
+                  className="rounded-xl border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none"
                 />
                 <input
                   name="title"
                   placeholder="일정 이름"
-                  className="rounded-xl border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none md:col-span-2"
+                  className="rounded-xl border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none md:col-span-2"
                 />
-                <button className="rounded-xl bg-[#171717] px-3 py-2 text-sm font-black text-white">
+                <button className="rounded-xl bg-[#e74786] px-3 py-2 text-sm font-black text-white">
                   추가
                 </button>
                 <input
                   name="memo"
                   placeholder="메모"
-                  className="rounded-xl border border-[#b7aaa0] bg-white px-3 py-2 text-sm outline-none md:col-span-6"
+                  className="rounded-xl border border-[#e98bb1] bg-white px-3 py-2 text-sm outline-none md:col-span-6"
                 />
               </form>
             </div>
@@ -3306,17 +2575,17 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#ffe5ef] text-xl font-black text-[#171717]">
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#ffe5ef] text-xl font-black text-[#d87598]">
                         {student.name.slice(0, 1)}
                       </div>
                     )}
                   </div>
 
                   <div className="text-center">
-                    <p className="text-xs font-black text-[#171717]">
+                    <p className="text-xs font-black text-[#4a343b]">
                       {student.name}
                     </p>
-                    <p className="mt-0.5 text-[14px font-black text-[#171717]">
+                    <p className="mt-0.5 text-[14px font-black text-[#d87598]">
                       Lv. {levelFromExp(student.exp_points, student.level)}
                     </p>
                   </div>

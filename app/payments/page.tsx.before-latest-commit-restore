@@ -892,61 +892,61 @@ ${feedbackNote}
   }
 
   return (
-    <main className="min-h-screen bg-[#ffffff] px-2 pb-20 pt-2 text-[#171717] md:px-5 md:py-8">
+    <main className="min-h-screen bg-[#fff3f7] px-5 py-8 text-[#3a2a30]">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-2 flex flex-col gap-2 rounded-[20px] border border-[#e5e5e5] bg-white p-3 shadow-sm md:mb-8 md:gap-5 md:rounded-[2rem] md:p-6 lg:flex-row lg:items-start lg:justify-between">
+        <header className="mb-8 flex flex-col gap-5 rounded-[2rem] border border-[#f4d6df] bg-white/80 p-6 shadow-sm md:flex-row md:items-start md:justify-between">
           <div>
-            <Link href="/" className="text-xs font-black text-[#525252] hover:text-[#171717] md:text-sm">
+            <Link href="/" className="text-sm font-semibold text-[#b56b82] hover:text-[#8f405a]">
               ← 대시보드로
             </Link>
 
-            <h1 className="mt-1 text-[18px] font-black text-[#171717] md:mt-3 md:text-3xl">월별 정산</h1>
-            <p className="mt-2 text-sm font-semibold text-[#525252]">
+            <h1 className="mt-3 text-3xl font-black text-[#583743]">월별 정산</h1>
+            <p className="mt-2 text-sm font-semibold text-[#9b6d7a]">
               선불/후불, 전월 이월 수업, 학부모 안내문자를 한 번에 정리해요.
             </p>
           </div>
 
-          <div className="rounded-3xl bg-[#f7f7f7] p-4 text-sm">
-            <div className="mb-2 grid grid-cols-[auto_1fr_auto] items-center gap-1 md:mb-3 md:flex md:flex-wrap md:justify-between md:gap-2">
+          <div className="rounded-3xl bg-[#fff7fa] p-4 text-sm">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={() => moveSettlementMonth(-1)}
-                className="rounded-full border border-[#d4d4d4] bg-white px-2 py-1 text-[10px] font-black text-[#171717] hover:bg-[#f5f5f5] md:px-3 md:py-1.5 md:text-xs"
+                className="rounded-full border border-[#efc8d4] bg-white px-3 py-1.5 text-xs font-black text-[#b56b82] hover:bg-[#ffe8f0]"
               >
                 ← 이전 회차
               </button>
 
-              <div className="truncate rounded-full bg-[#171717] px-3 py-1.5 text-center text-xs font-black text-white shadow-sm md:px-5 md:py-2 md:text-base">
+              <div className="rounded-full bg-[#ffdce8] px-5 py-2 text-base font-black text-[#7d2f49] shadow-sm">
                 {getSettlementTitle(startDate)}
               </div>
 
               <button
                 type="button"
                 onClick={() => moveSettlementMonth(1)}
-                className="rounded-full border border-[#d4d4d4] bg-white px-2 py-1 text-[10px] font-black text-[#171717] hover:bg-[#f5f5f5] md:px-3 md:py-1.5 md:text-xs"
+                className="rounded-full border border-[#efc8d4] bg-white px-3 py-1.5 text-xs font-black text-[#b56b82] hover:bg-[#ffe8f0]"
               >
                 다음 회차 →
               </button>
             </div>
 
             <div className="grid gap-2 md:grid-cols-2">
-              <label className="text-[11px] font-bold text-[#525252] md:text-sm">
+              <label className="font-bold text-[#8e5366]">
                 시작
                 <input
                   type="date"
                   value={startDate}
                   onChange={(event) => updateSettlementRange(event.target.value, endDate)}
-                  className="mt-1 w-full rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#171717] md:rounded-2xl md:px-3 md:py-2 md:text-sm"
+                  className="mt-1 w-full rounded-2xl border border-[#efc8d4] bg-white px-3 py-2 text-sm outline-none focus:border-[#dc7f9a]"
                 />
               </label>
 
-              <label className="text-[11px] font-bold text-[#525252] md:text-sm">
+              <label className="font-bold text-[#8e5366]">
                 마무리
                 <input
                   type="date"
                   value={endDate}
                   onChange={(event) => updateSettlementRange(startDate, event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#171717] md:rounded-2xl md:px-3 md:py-2 md:text-sm"
+                  className="mt-1 w-full rounded-2xl border border-[#efc8d4] bg-white px-3 py-2 text-sm outline-none focus:border-[#dc7f9a]"
                 />
               </label>
             </div>
@@ -954,12 +954,12 @@ ${feedbackNote}
         </header>
 
         {errorMessage && (
-          <div className="mb-5 rounded-3xl border border-[#f0b8c8] bg-[#f7f7f7] px-5 py-4 text-sm font-bold text-[#b34262]">
+          <div className="mb-5 rounded-3xl border border-[#f0b8c8] bg-[#fff7fa] px-5 py-4 text-sm font-bold text-[#b34262]">
             {errorMessage}
           </div>
         )}
 
-        <section className="mb-2 grid grid-cols-2 gap-1.5 md:mb-6 md:grid-cols-3 md:gap-4">
+        <section className="mb-6 grid gap-4 md:grid-cols-3">
           <ProgressSummaryBox percent={overallProgress} />
           <SummaryBox
             title="이번달 정산 총액"
@@ -974,19 +974,19 @@ ${feedbackNote}
           />
         </section>
 
-        <section className="rounded-[20px] border border-[#e5e5e5] bg-white p-3 shadow-sm md:rounded-[2rem] md:p-5">
-          <div className="mb-3 flex flex-col gap-1 md:mb-5 md:flex-row md:items-end md:justify-between md:gap-2">
+        <section className="rounded-[2rem] border border-[#f3d3dd] bg-white p-5 shadow-sm">
+          <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-[15px] font-black text-[#171717] md:text-xl">학생별 정산 현황</h2>
-              <p className="mt-1 text-sm font-semibold text-[#525252]">
+              <h2 className="text-xl font-black text-[#583743]">학생별 정산 현황</h2>
+              <p className="mt-1 text-sm font-semibold text-[#9b6d7a]">
                 학생 이름을 누르면 상세페이지로 이동해요.
               </p>
             </div>
 
-            {loading && <p className="text-sm font-bold text-[#525252]">불러오는 중...</p>}
+            {loading && <p className="text-sm font-bold text-[#b56b82]">불러오는 중...</p>}
           </div>
 
-          <div className="grid gap-2 md:gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2">
             {rows.map((row) => {
               const studentId = row.student.id;
               const settlement = row.settlement;
@@ -998,13 +998,13 @@ ${feedbackNote}
               return (
                 <article
                   key={studentId}
-                  className="rounded-[16px] border border-[#e5e5e5] bg-[#f7f7f7] p-2.5 shadow-sm md:rounded-[2rem] md:p-5"
+                  className="rounded-[2rem] border border-[#f3d3dd] bg-[#fff9fb] p-5 shadow-sm"
                 >
                   <div>
-                    <div className="mb-2 flex flex-wrap items-center gap-1.5 md:mb-4 md:gap-2">
+                    <div className="mb-4 flex flex-wrap items-center gap-2">
                       <Link
                         href={`/students/${studentId}`}
-                        className="text-2xl font-black text-[#171717] underline decoration-[#737373] underline-offset-4 hover:text-[#d93675]"
+                        className="text-2xl font-black text-[#583743] underline decoration-[#f3b6c6] underline-offset-4 hover:text-[#d93675]"
                       >
                         {row.student.name}
                       </Link>
@@ -1013,7 +1013,7 @@ ${feedbackNote}
                         className={`rounded-full px-3 py-1 text-xs font-black ${
                           paymentType === "후불"
                             ? "bg-[#eef7ff] text-[#3f6f91]"
-                            : "bg-[#f5f5f5] text-[#b34262]"
+                            : "bg-[#fff0f5] text-[#b34262]"
                         }`}
                       >
                         {paymentType}
@@ -1027,17 +1027,17 @@ ${feedbackNote}
                             [studentId]: !prev[studentId],
                           }))
                         }
-                        className="rounded-full border border-[#d4d4d4] bg-white px-2 py-1 text-[10px] font-bold text-[#525252] hover:bg-[#f5f5f5] md:px-3 md:text-xs"
+                        className="rounded-full border border-[#efc8d4] bg-white px-3 py-1 text-xs font-bold text-[#b56b82] hover:bg-[#fff0f5]"
                       >
                         정산 설정
                       </button>
 
                       {savingId === studentId && (
-                        <span className="text-xs font-bold text-[#525252]">저장 중...</span>
+                        <span className="text-xs font-bold text-[#c4778c]">저장 중...</span>
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5 md:gap-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <InfoCard title={paymentType === "후불" ? "예상 수업료" : "총 수업료"} tone="strong">
                         {editingTotalFee === studentId ? (
                           <input
@@ -1061,18 +1061,18 @@ ${feedbackNote}
                               }
                             }}
                             autoFocus
-                            className="w-full rounded-2xl border border-[#d4d4d4] bg-white px-3 py-2 text-right text-lg font-black text-[#171717] outline-none focus:border-[#171717]"
+                            className="w-full rounded-2xl border border-[#efc8d4] bg-white px-3 py-2 text-right text-lg font-black text-[#7d2f49] outline-none focus:border-[#dc7f9a]"
                           />
                         ) : (
                           <div className="flex items-center justify-between gap-3">
                             <button
                               type="button"
                               onClick={() => setEditingTotalFee(studentId)}
-                              className="text-left text-lg font-black text-[#171717] underline decoration-[#737373] underline-offset-4"
+                              className="text-left text-lg font-black text-[#7d2f49] underline decoration-[#f3b6c6] underline-offset-4"
                             >
                               {formatMoney(row.totalFee)}
                             </button>
-                            <span className="shrink-0 rounded-2xl bg-white px-3 py-1.5 text-sm font-black text-[#525252] shadow-sm ring-1 ring-[#d4d4d4]">
+                            <span className="shrink-0 rounded-2xl bg-white px-3 py-1.5 text-sm font-black text-[#9b4f65] shadow-sm ring-1 ring-[#f3c4d1]">
                               {row.expectedCount}회분만 청구 · {Number(settlement.lesson_hours || 0)}시간
                             </span>
                           </div>
@@ -1086,7 +1086,7 @@ ${feedbackNote}
                                 updateLocalSettlement(studentId, { total_fee_override: null });
                                 saveSettlement(studentId, { total_fee_override: null });
                               }}
-                              className="mt-2 text-[11px] font-black text-[#525252] underline underline-offset-2"
+                              className="mt-2 text-[11px] font-black text-[#c4778c] underline underline-offset-2"
                             >
                               자동계산으로 돌리기
                             </button>
@@ -1099,7 +1099,7 @@ ${feedbackNote}
                             <span className="text-lg font-black text-[#b34262]">
                               {formatMoney(row.totalFee)}
                             </span>
-                            <p className="mt-1 text-[11px] font-bold text-[#525252]">
+                            <p className="mt-1 text-[11px] font-bold text-[#9b6d7a]">
                               실제 {formatHours(row.billableMinutes)}
                             </p>
                           </>
@@ -1130,33 +1130,33 @@ ${feedbackNote}
                                     }
                                   }}
                                   autoFocus
-                                  className="w-20 rounded-2xl border border-[#d4d4d4] bg-white px-3 py-1.5 text-right text-sm font-black outline-none focus:border-[#171717]"
+                                  className="w-20 rounded-2xl border border-[#efc8d4] bg-white px-3 py-1.5 text-right text-sm font-black outline-none focus:border-[#dc7f9a]"
                                 />
                               ) : (
                                 <button
                                   type="button"
                                   onClick={() => setEditingCarryover(studentId)}
-                                  className="rounded-full bg-white px-3 py-1 text-sm font-black text-[#171717] underline decoration-[#737373] underline-offset-4 ring-1 ring-[#e5e5e5]"
+                                  className="rounded-full bg-white px-3 py-1 text-sm font-black text-[#7d2f49] underline decoration-[#f3b6c6] underline-offset-4 ring-1 ring-[#f3d3dd]"
                                 >
                                   {row.previousCarryoverCount}회
                                 </button>
                               )}
                             </div>
 
-                            <p className="text-[11px] font-bold text-[#525252]">
+                            <p className="text-[11px] font-bold text-[#9b6d7a]">
                               {getPreviousMonthLabel(startDate)}에 못 해서 이번 달에 해야 하는 수업
                             </p>
 
                             {row.nextCarryoverCount > 0 ? (
-                              <p className="rounded-2xl bg-[#f5f5f5] px-3 py-2 text-xs font-black text-[#b34262]">
+                              <p className="rounded-2xl bg-[#fff0f5] px-3 py-2 text-xs font-black text-[#b34262]">
                                 다음달 이월 예정 {row.nextCarryoverCount}회
                               </p>
                             ) : row.prepaidExtraCount > 0 ? (
-                              <p className="rounded-2xl bg-[#f5f5f5] px-3 py-2 text-xs font-black text-[#d93675]">
+                              <p className="rounded-2xl bg-[#fff0f5] px-3 py-2 text-xs font-black text-[#d93675]">
                                 추가수업 {row.prepaidExtraCount}회 · 다음달 추가 {formatMoney(row.prepaidExtraFee)}
                               </p>
                             ) : (
-                              <p className="rounded-2xl bg-[#f7f7f7] px-3 py-2 text-xs font-black text-[#525252]">
+                              <p className="rounded-2xl bg-[#fff7fa] px-3 py-2 text-xs font-black text-[#9b6d7a]">
                                 다음달 이월 없음
                               </p>
                             )}
@@ -1187,23 +1187,23 @@ ${feedbackNote}
                               }
                             }}
                             autoFocus
-                            className="w-24 rounded-2xl border border-[#d4d4d4] bg-white px-3 py-2 text-right text-lg font-black outline-none focus:border-[#171717]"
+                            className="w-24 rounded-2xl border border-[#efc8d4] bg-white px-3 py-2 text-right text-lg font-black outline-none focus:border-[#dc7f9a]"
                           />
                         ) : (
                           <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
                               onClick={() => setEditingExpected(studentId)}
-                              className="text-left text-lg font-black text-[#171717] underline decoration-[#737373] underline-offset-4"
+                              className="text-left text-lg font-black text-[#583743] underline decoration-[#f3b6c6] underline-offset-4"
                             >
                               {row.expectedCount}회
                             </button>
                             {row.previousCarryoverCount > 0 && (
-                              <span className="rounded-full bg-[#f5f5f5] px-2.5 py-1 text-[11px] font-black text-[#d93675] ring-1 ring-[#d4d4d4]">
+                              <span className="rounded-full bg-[#fff0f5] px-2.5 py-1 text-[11px] font-black text-[#d93675] ring-1 ring-[#f3c4d1]">
                                 + 전월 {row.previousCarryoverCount}회
                               </span>
                             )}
-                            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-[#525252] ring-1 ring-[#e5e5e5]">
+                            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-[#a36879] ring-1 ring-[#f3d3dd]">
                               캘린더 자동 {row.calendarExpectedCount}회
                             </span>
                           </div>
@@ -1233,18 +1233,18 @@ ${feedbackNote}
                               }
                             }}
                             autoFocus
-                            className="w-24 rounded-2xl border border-[#d4d4d4] bg-white px-3 py-2 text-right text-lg font-black outline-none focus:border-[#171717]"
+                            className="w-24 rounded-2xl border border-[#efc8d4] bg-white px-3 py-2 text-right text-lg font-black outline-none focus:border-[#dc7f9a]"
                           />
                         ) : (
                           <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
                               onClick={() => setEditingActual(studentId)}
-                              className="text-left text-lg font-black text-[#171717] underline decoration-[#737373] underline-offset-4"
+                              className="text-left text-lg font-black text-[#583743] underline decoration-[#f3b6c6] underline-offset-4"
                             >
                               {row.actualLessonCount}회
                             </button>
-                            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-[#525252] ring-1 ring-[#e5e5e5]">
+                            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-[#a36879] ring-1 ring-[#f3d3dd]">
                               기록 자동 {row.autoActualLessonCount}회
                             </span>
                             {settlement.actual_lesson_count_override !== null &&
@@ -1261,13 +1261,13 @@ ${feedbackNote}
                                       total_fee_override: null,
                                     });
                                   }}
-                                  className="text-[11px] font-black text-[#525252] underline underline-offset-2"
+                                  className="text-[11px] font-black text-[#c4778c] underline underline-offset-2"
                                 >
                                   자동으로
                                 </button>
                               )}
                             {row.extraLessonCount > 0 && (
-                              <span className="rounded-full bg-[#f5f5f5] px-2.5 py-1 text-xs font-black text-[#b34262]">
+                              <span className="rounded-full bg-[#fff0f5] px-2.5 py-1 text-xs font-black text-[#b34262]">
                                 추가수업 {row.extraLessonCount}회
                               </span>
                             )}
@@ -1294,20 +1294,20 @@ ${feedbackNote}
                             }
                             className={`rounded-full px-3 py-2 text-xs font-black ${
                               settlement.feedback_done
-                                ? "bg-[#e5e5e5] text-[#171717]"
-                                : "bg-white text-[#525252] ring-1 ring-[#d4d4d4]"
+                                ? "bg-[#ffd6e1] text-[#9e3556]"
+                                : "bg-white text-[#9b6d7a] ring-1 ring-[#efc8d4]"
                             }`}
                           >
                             {settlement.feedback_done ? "안내완료" : "안내전"}
                           </button>
 
                           <details className="w-fit">
-                            <summary className="w-fit cursor-pointer list-none rounded-full border border-[#d4d4d4] bg-white px-3 py-2 text-xs font-black text-[#525252] hover:bg-[#f5f5f5]">
+                            <summary className="w-fit cursor-pointer list-none rounded-full border border-[#efc8d4] bg-white px-3 py-2 text-xs font-black text-[#b56b82] hover:bg-[#fff0f5]">
                               학생별 피드백칸 열기
                             </summary>
 
-                            <div className="mt-3 rounded-2xl border border-[#e5e5e5] bg-[#f7f7f7] p-3">
-                              <label className="text-xs font-black text-[#525252]">수업 피드백 메모</label>
+                            <div className="mt-3 rounded-2xl border border-[#f3d3dd] bg-[#fff9fb] p-3">
+                              <label className="text-xs font-black text-[#8e5366]">수업 피드백 메모</label>
                               <textarea
                                 value={settlement.feedback_note || ""}
                                 onChange={(event) =>
@@ -1317,10 +1317,10 @@ ${feedbackNote}
                                 }
                                 onBlur={() => saveSettlement(studentId)}
                                 placeholder="시험 결과, 숙제 수행, 수업 태도, 수행평가 관련 내용을 적어두면 아래 문자에 자동으로 들어가요."
-                                className="mt-2 min-h-24 w-full rounded-2xl border border-[#d4d4d4] bg-white px-3 py-2 text-xs font-semibold leading-5 outline-none focus:border-[#171717]"
+                                className="mt-2 min-h-24 w-full rounded-2xl border border-[#efc8d4] bg-white px-3 py-2 text-xs font-semibold leading-5 outline-none focus:border-[#dc7f9a]"
                               />
 
-                              <div className="mt-3 rounded-2xl bg-white p-3 text-xs font-semibold leading-6 text-[#171717]">
+                              <div className="mt-3 rounded-2xl bg-white p-3 text-xs font-semibold leading-6 text-[#583743]">
                                 <p className="mb-2 font-black text-[#b34262]">자동 안내문자 초안</p>
                                 <pre className="whitespace-pre-wrap font-sans">{makeParentFeedbackMessage(row)}</pre>
                               </div>
@@ -1328,7 +1328,7 @@ ${feedbackNote}
                               <button
                                 type="button"
                                 onClick={() => copyFeedbackMessage(row)}
-                                className="mt-3 rounded-full bg-[#171717] px-4 py-2 text-xs font-black text-white"
+                                className="mt-3 rounded-full bg-[#d96f8d] px-4 py-2 text-xs font-black text-white"
                               >
                                 {copiedStudentId === studentId ? "복사 완료" : "문자 복사"}
                               </button>
@@ -1355,8 +1355,8 @@ ${feedbackNote}
                             }}
                             className={`rounded-full px-4 py-2 text-sm font-black ${
                               settlement.payment_status === "입금완료"
-                                ? "bg-[#e5e5e5] text-[#171717]"
-                                : "bg-white text-[#525252] ring-1 ring-[#d4d4d4]"
+                                ? "bg-[#ffd6e1] text-[#9e3556]"
+                                : "bg-white text-[#9b6d7a] ring-1 ring-[#efc8d4]"
                             }`}
                           >
                             {settlement.payment_status}
@@ -1374,7 +1374,7 @@ ${feedbackNote}
                                   payment_completed_date: event.target.value,
                                 });
                               }}
-                              className="w-36 rounded-full border border-[#d4d4d4] bg-white px-3 py-2 text-xs font-black text-[#171717] outline-none"
+                              className="w-36 rounded-full border border-[#efc8d4] bg-white px-3 py-2 text-xs font-black text-[#9e3556] outline-none"
                             />
                           )}
                         </div>
@@ -1389,11 +1389,11 @@ ${feedbackNote}
                   </div>
 
                   {isOpen && (
-                    <div className="mt-5 rounded-3xl border border-[#e5e5e5] bg-white p-4">
-                      <p className="mb-3 text-sm font-black text-[#525252]">숨겨둔 정산 설정</p>
+                    <div className="mt-5 rounded-3xl border border-[#f3d3dd] bg-white p-4">
+                      <p className="mb-3 text-sm font-black text-[#8e5366]">숨겨둔 정산 설정</p>
 
                       <div className="grid gap-3 md:grid-cols-5">
-                        <label className="text-sm text-[11px] font-bold text-[#525252] md:text-sm">
+                        <label className="text-sm font-bold text-[#8e5366]">
                           정산 방식
                           <select
                             value={settlement.payment_type || "선불"}
@@ -1402,14 +1402,14 @@ ${feedbackNote}
                               updateLocalSettlement(studentId, { payment_type: paymentType });
                               saveSettlement(studentId, { payment_type: paymentType });
                             }}
-                            className="mt-1 w-full rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#171717] md:rounded-2xl md:px-3 md:py-2 md:text-sm"
+                            className="mt-1 w-full rounded-2xl border border-[#efc8d4] bg-white px-3 py-2 text-sm outline-none focus:border-[#dc7f9a]"
                           >
                             <option value="선불">선불</option>
                             <option value="후불">후불</option>
                           </select>
                         </label>
 
-                        <label className="text-sm text-[11px] font-bold text-[#525252] md:text-sm">
+                        <label className="text-sm font-bold text-[#8e5366]">
                           1회 수업시간
                           <select
                             value={String(settlement.lesson_hours)}
@@ -1424,7 +1424,7 @@ ${feedbackNote}
                                 total_fee_override: null,
                               });
                             }}
-                            className="mt-1 w-full rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#171717] md:rounded-2xl md:px-3 md:py-2 md:text-sm"
+                            className="mt-1 w-full rounded-2xl border border-[#efc8d4] bg-white px-3 py-2 text-sm outline-none focus:border-[#dc7f9a]"
                           >
                             {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4].map((hour) => (
                               <option key={hour} value={hour}>
@@ -1434,7 +1434,7 @@ ${feedbackNote}
                           </select>
                         </label>
 
-                        <label className="text-sm text-[11px] font-bold text-[#525252] md:text-sm">
+                        <label className="text-sm font-bold text-[#8e5366]">
                           시간당 수업료
                           <input
                             type="number"
@@ -1453,23 +1453,23 @@ ${feedbackNote}
                                 total_fee_override: null,
                               })
                             }
-                            className="mt-1 w-full rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#171717] md:rounded-2xl md:px-3 md:py-2 md:text-sm"
+                            className="mt-1 w-full rounded-2xl border border-[#efc8d4] bg-white px-3 py-2 text-sm outline-none focus:border-[#dc7f9a]"
                           />
                         </label>
 
-                        <div className="rounded-2xl bg-[#f7f7f7] p-3 text-sm">
-                          <p className="font-bold text-[#525252]">청구 기준</p>
-                          <p className="mt-1 text-lg font-black text-[#171717]">
+                        <div className="rounded-2xl bg-[#fff7fa] p-3 text-sm">
+                          <p className="font-bold text-[#9b6d7a]">청구 기준</p>
+                          <p className="mt-1 text-lg font-black text-[#583743]">
                             {row.expectedCount}회 × {Number(settlement.lesson_hours || 0)}시간
                           </p>
-                          <p className="mt-1 text-[11px] font-bold text-[#525252]">
+                          <p className="mt-1 text-[11px] font-bold text-[#9b6d7a]">
                             전월 이월 {row.previousCarryoverCount}회는 청구 제외
                           </p>
                         </div>
 
-                        <div className="rounded-2xl bg-[#f7f7f7] p-3 text-sm">
-                          <p className="font-bold text-[#525252]">실제 총 수업시간</p>
-                          <p className="mt-1 text-lg font-black text-[#171717]">
+                        <div className="rounded-2xl bg-[#fff7fa] p-3 text-sm">
+                          <p className="font-bold text-[#9b6d7a]">실제 총 수업시간</p>
+                          <p className="mt-1 text-lg font-black text-[#583743]">
                             {formatHours(row.actualTotalMinutes)}
                           </p>
                         </div>
@@ -1482,16 +1482,16 @@ ${feedbackNote}
           </div>
         </section>
 
-        <section className="mt-6 rounded-[20px] border border-[#e5e5e5] bg-white p-3 shadow-sm md:rounded-[2rem] md:p-5">
+        <section className="mt-6 rounded-[2rem] border border-[#f3d3dd] bg-white p-5 shadow-sm">
           <div className="mb-4">
-            <h2 className="text-[15px] font-black text-[#171717] md:text-xl">정산 메모</h2>
+            <h2 className="text-xl font-black text-[#583743]">정산 메모</h2>
           </div>
 
           <div className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
             <select
               value={newMemoStudentId}
               onChange={(event) => setNewMemoStudentId(event.target.value)}
-              className="rounded-2xl border border-[#d4d4d4] bg-[#f7f7f7] px-3 py-3 text-sm font-bold outline-none focus:border-[#171717]"
+              className="rounded-2xl border border-[#efc8d4] bg-[#fff9fb] px-3 py-3 text-sm font-bold outline-none focus:border-[#dc7f9a]"
             >
               {students.map((student) => (
                 <option key={student.id} value={student.id}>
@@ -1504,13 +1504,13 @@ ${feedbackNote}
               value={newMemo}
               onChange={(event) => setNewMemo(event.target.value)}
               placeholder="예: 솔이만 후불 / 전월 이월 1회"
-              className="rounded-2xl border border-[#d4d4d4] bg-[#f7f7f7] px-4 py-3 text-sm outline-none focus:border-[#171717]"
+              className="rounded-2xl border border-[#efc8d4] bg-[#fff9fb] px-4 py-3 text-sm outline-none focus:border-[#dc7f9a]"
             />
 
             <button
               type="button"
               onClick={addMemo}
-              className="rounded-2xl bg-[#171717] px-5 py-3 text-sm font-black text-white hover:bg-[#404040]"
+              className="rounded-2xl bg-[#d96f8d] px-5 py-3 text-sm font-black text-white hover:bg-[#c75f7e]"
             >
               메모 추가
             </button>
@@ -1518,16 +1518,16 @@ ${feedbackNote}
 
           <div className="mt-5 grid gap-3">
             {memos.length === 0 ? (
-              <div className="rounded-3xl bg-[#f7f7f7] p-4 text-sm font-bold text-[#525252]">
+              <div className="rounded-3xl bg-[#fff7fa] p-4 text-sm font-bold text-[#9b6d7a]">
                 아직 남긴 메모가 없어요.
               </div>
             ) : (
               memos.map((memo) => (
                 <div
                   key={memo.id}
-                  className="flex flex-col gap-2 rounded-3xl bg-[#f7f7f7] p-4 text-sm md:flex-row md:items-center md:justify-between"
+                  className="flex flex-col gap-2 rounded-3xl bg-[#fff7fa] p-4 text-sm md:flex-row md:items-center md:justify-between"
                 >
-                  <p className="text-[#171717]">
+                  <p className="text-[#583743]">
                     <span className="mr-2 font-black text-[#b34262]">
                       {memo.students?.name ||
                         students.find((student) => student.id === memo.student_id)?.name ||
@@ -1539,7 +1539,7 @@ ${feedbackNote}
                   <button
                     type="button"
                     onClick={() => deleteMemo(memo.id)}
-                    className="self-start rounded-full bg-white px-3 py-1 text-xs font-black text-[#525252] ring-1 ring-[#d4d4d4] md:self-auto"
+                    className="self-start rounded-full bg-white px-3 py-1 text-xs font-black text-[#9b6d7a] ring-1 ring-[#efc8d4] md:self-auto"
                   >
                     삭제
                   </button>
@@ -1549,27 +1549,6 @@ ${feedbackNote}
           </div>
         </section>
       </div>
-
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-[#e5e5e5] bg-white/85 px-2 py-2 backdrop-blur-xl md:hidden">
-        <div className="mx-auto grid max-w-[390px] grid-cols-3 gap-1">
-          {[
-            ["⌂", "수업", "/?tab=lessons"],
-            ["□", "일정", "/?tab=schedule"],
-            ["₩", "정산", "/payments"],
-          ].map(([symbol, label, href]) => (
-            <Link
-              key={href}
-              href={href}
-              className={`grid gap-0.5 rounded-xl px-1 py-1 text-center font-black ${
-                label === "정산" ? "bg-[#f5f5f5] text-[#171717]" : "text-[#737373]"
-              }`}
-            >
-              <span className="text-[14px] leading-none">{symbol}</span>
-              <span className="text-[8px] leading-none">{label}</span>
-            </Link>
-          ))}
-        </div>
-      </nav>
     </main>
   );
 }
@@ -1578,12 +1557,12 @@ function ProgressSummaryBox({ percent }: { percent: number }) {
   const safePercent = clampPercent(percent);
 
   return (
-    <div className="rounded-[14px] border border-[#e5e5e5] bg-white p-2.5 shadow-sm md:rounded-[2rem] md:p-6">
-      <p className="text-[10px] font-black text-[#525252] md:text-sm">전체 수업 진행률</p>
-      <p className="mt-1 text-[15px] font-black text-[#171717] md:mt-2 md:text-3xl">{Math.round(safePercent)}%</p>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#e5e5e5] md:mt-4 md:h-3">
+    <div className="rounded-[2rem] border border-[#f3d3dd] bg-white p-6 shadow-sm">
+      <p className="text-sm font-black text-[#b56b82]">전체 수업 진행률</p>
+      <p className="mt-2 text-3xl font-black text-[#583743]">{Math.round(safePercent)}%</p>
+      <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#ffe3ec]">
         <div
-          className="h-full rounded-full bg-[#171717] transition-all duration-500"
+          className="h-full rounded-full bg-[#e84378] transition-all duration-500"
           style={{ width: `${safePercent}%` }}
         />
       </div>
@@ -1604,13 +1583,13 @@ function SummaryBox({
 }) {
   return (
     <div
-      className={`rounded-[14px] border p-2.5 shadow-sm md:rounded-[2rem] md:p-6 ${
-        tone === "pink" ? "border-[#d4d4d4] bg-[#f5f5f5]" : "border-[#e5e5e5] bg-white"
+      className={`rounded-[2rem] border p-6 shadow-sm ${
+        tone === "pink" ? "border-[#efb6c8] bg-[#ffe7ef]" : "border-[#f3d3dd] bg-white"
       }`}
     >
-      <p className="text-[10px] font-black text-[#525252] md:text-sm">{title}</p>
-      <p className="mt-1 text-[15px] font-black text-[#171717] md:mt-2 md:text-3xl">{value}</p>
-      {sub && <p className="mt-1 hidden text-xs font-bold text-[#525252] md:block">{sub}</p>}
+      <p className="text-sm font-black text-[#b56b82]">{title}</p>
+      <p className="mt-2 text-3xl font-black text-[#583743]">{value}</p>
+      {sub && <p className="mt-2 text-xs font-bold text-[#9b6d7a]">{sub}</p>}
     </div>
   );
 }
@@ -1626,11 +1605,11 @@ function InfoCard({
 }) {
   return (
     <div
-      className={`min-w-0 rounded-[12px] p-2 ring-1 md:min-w-[150px] md:rounded-3xl md:p-3.5 ${
-        tone === "strong" ? "bg-[#f5f5f5] ring-[#d4d4d4]" : "bg-white ring-[#e5e5e5]"
+      className={`min-w-[150px] rounded-3xl p-3.5 ring-1 ${
+        tone === "strong" ? "bg-[#ffdce8] ring-[#eca8bd]" : "bg-white ring-[#f3d3dd]"
       }`}
     >
-      <p className="mb-1 text-[9px] font-black uppercase tracking-tight text-[#525252] md:mb-1.5 md:text-xs">
+      <p className="mb-1.5 text-xs font-black uppercase tracking-tight text-[#b56b82]">
         {title}
       </p>
       {children}
@@ -1663,7 +1642,7 @@ function DateTextPicker({
       <button
         type="button"
         onClick={openPicker}
-        className="rounded-full bg-[#f5f5f5] px-3 py-2 text-xs font-black text-[#171717] hover:bg-[#e5e5e5]"
+        className="rounded-full bg-[#ffe1eb] px-3 py-2 text-xs font-black text-[#9e3556] hover:bg-[#ffd3e1]"
       >
         {formatDateShort(value)}
       </button>
@@ -1692,17 +1671,17 @@ function StudentProgressBar({
   const safePercent = clampPercent(percent);
 
   return (
-    <div className="mt-4 rounded-3xl bg-white p-4 ring-1 ring-[#e5e5e5]">
+    <div className="mt-4 rounded-3xl bg-white p-4 ring-1 ring-[#f3d3dd]">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="text-xs font-black text-[#525252]">수업 진행률</p>
-        <p className="text-sm font-black text-[#171717]">
+        <p className="text-xs font-black text-[#b56b82]">수업 진행률</p>
+        <p className="text-sm font-black text-[#7d2f49]">
           {actualCount} / {expectedCount}회 · {Math.round(safePercent)}%
         </p>
       </div>
 
-      <div className="h-3 overflow-hidden rounded-full bg-[#f5f5f5]">
+      <div className="h-3 overflow-hidden rounded-full bg-[#ffe1eb]">
         <div
-          className="h-full rounded-full bg-[#171717] transition-all duration-500"
+          className="h-full rounded-full bg-[#e84378] transition-all duration-500"
           style={{ width: `${safePercent}%` }}
         />
       </div>

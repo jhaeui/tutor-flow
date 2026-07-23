@@ -12,14 +12,14 @@ const students = [
 
 export default function NewTaskPage() {
   return (
-    <main className="min-h-screen bg-[#f7f3ee] px-6 py-8 text-[#2f2a25]">
+    <main className="min-h-screen bg-[#ffffff] px-6 py-8 text-[#171717]">
       <div className="mx-auto max-w-4xl">
         <header className="mb-8">
-          <a href="/" className="text-sm font-semibold text-[#8b7d70]">
+          <a href="/" className="text-sm font-semibold text-[#525252]">
             ← 대시보드로
           </a>
           <h1 className="mt-3 text-3xl font-bold">수행평가 / 공지 추가</h1>
-          <p className="mt-2 text-sm text-[#8b7d70]">
+          <p className="mt-2 text-sm text-[#525252]">
             학생이 카톡으로 보내준 수행평가 일정, 공지, 내가 해줘야 할 일을 정리하는 페이지
           </p>
         </header>
@@ -121,7 +121,7 @@ export default function NewTaskPage() {
             </a>
             <button
               type="button"
-              className="rounded-2xl bg-[#2f2a25] px-5 py-3 text-sm font-semibold text-white"
+              className="rounded-2xl bg-[#171717] px-5 py-3 text-sm font-semibold text-white"
             >
               저장하기
             </button>

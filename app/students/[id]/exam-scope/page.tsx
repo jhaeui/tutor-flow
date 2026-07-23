@@ -59,13 +59,13 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_CLASS: Record<string, string> = {
-  not_started: "bg-white text-[#8f6270] border-[#ead9de]",
+  not_started: "bg-white text-[#171717] border-[#e5e5e5]",
   in_progress: "bg-[#fff7d9] text-[#8a6420] border-[#ead58d]",
-  done: "bg-[#edf8f2] text-[#47735b] border-[#cce6d6]",
-  review: "bg-[#eef4ff] text-[#4d66a6] border-[#c9d8f5]",
-  homework: "bg-[#ffeaf2] text-[#d93675] border-[#f3bdd0]",
+  done: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
+  review: "bg-[#eef4ff] text-[#404040] border-[#c9d8f5]",
+  homework: "bg-[#eee8df] text-[#171717] border-[#C8BAC6]",
   paused: "bg-[#f1f1f1] text-[#777] border-[#d8d8d8]",
-  planned: "bg-[#f5efff] text-[#6d55a8] border-[#d8c8f0]",
+  planned: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
 };
 
 const TASK_ORDER_META_KEY = "__task_order";
@@ -1140,22 +1140,22 @@ export default function ExamScopePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fbf7f8] px-5 py-8 text-[#3f3437]">
+    <main className="min-h-screen bg-[#ffffff] px-5 py-8 text-[#171717]">
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-black text-[#a87583]">시험범위 진도표</p>
+            <p className="text-sm font-black text-[#525252]">시험범위 진도표</p>
             <h1 className="mt-1 text-3xl font-black tracking-tight">
               {studentName ? `${studentName} 시험범위` : "시험범위"}
             </h1>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs font-black text-[#8f6270]">
+            <div className="mt-3 flex flex-wrap gap-2 text-xs font-black text-[#171717]">
               {studentGrade && (
-                <span className="rounded-full border border-[#f0c8d5] bg-[#fff7fa] px-3 py-1">
+                <span className="rounded-full border border-[#d4d4d4] bg-[#ffffff] px-3 py-1">
                   {studentGrade}
                 </span>
               )}
               {studentInfo?.school && (
-                <span className="rounded-full border border-[#ead9de] bg-white px-3 py-1">
+                <span className="rounded-full border border-[#e5e5e5] bg-white px-3 py-1">
                   {studentInfo.school}
                 </span>
               )}
@@ -1164,20 +1164,20 @@ export default function ExamScopePage() {
 
           <div className="flex flex-wrap items-center gap-2">
             <details className="group">
-              <summary className="cursor-pointer list-none rounded-full bg-[#e86f9d] px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5">
+              <summary className="cursor-pointer list-none rounded-full bg-[#171717] px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5">
                 + 시험범위 추가
               </summary>
 
-              <section className="mt-3 rounded-[2rem] border border-[#ead9de] bg-white p-5 shadow-sm lg:absolute lg:right-52 lg:z-20 lg:w-[min(92vw,860px)]">
+              <section className="mt-3 rounded-[2rem] border border-[#e5e5e5] bg-white p-5 shadow-sm lg:absolute lg:right-52 lg:z-20 lg:w-[min(92vw,860px)]">
                 <h2 className="text-lg font-black">시험범위 추가</h2>
-                <p className="mt-1 text-sm font-semibold text-[#8b767c]">
+                <p className="mt-1 text-sm font-semibold text-[#525252]">
                   교과서 단원, 모의고사 번호, 소단원까지 나눠서 넣을 수 있어.
                 </p>
 
-                <div className="mt-4 rounded-3xl border border-[#f0d6df] bg-[#fffafb] p-4">
+                <div className="mt-4 rounded-3xl border border-[#e5e5e5] bg-[#f5f5f5] p-4">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-sm font-black text-[#8f6270]">
+                      <p className="text-sm font-black text-[#171717]">
                         복붙으로 여러 범위 추가
                       </p>
                       <p className="mt-1 text-xs font-bold text-[#a88b94]">
@@ -1189,7 +1189,7 @@ export default function ExamScopePage() {
                       type="button"
                       onClick={pasteRows}
                       disabled={loading}
-                      className="rounded-2xl bg-[#b98594] px-4 py-2 text-xs font-black text-white disabled:bg-[#c8b8bf]"
+                      className="rounded-2xl bg-[#171717] px-4 py-2 text-xs font-black text-white disabled:bg-[#c8b8bf]"
                     >
                       복붙 범위 추가
                     </button>
@@ -1199,19 +1199,19 @@ export default function ExamScopePage() {
                     onChange={(e) => setPasteText(e.target.value)}
                     placeholder={`예:\nLesson 5, 본문 1문단, 교과서, 능률, 서술형 중요\nLesson 5, 워크북 p.12, 워크북, 능률, 숙제`}
                     rows={4}
-                    className="mt-3 w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 text-sm font-bold outline-none focus:border-[#dc7f9a]"
+                    className="mt-3 w-full rounded-2xl border border-[#e5e5e5] bg-white px-4 py-3 text-sm font-bold outline-none focus:border-[#dc7f9a]"
                   />
                 </div>
 
                 <div className="mt-5 grid gap-3 md:grid-cols-6">
                   <div className="md:col-span-2">
-                    <label className="mb-2 block text-xs font-black text-[#8f6270]">
+                    <label className="mb-2 block text-xs font-black text-[#171717]">
                       과목
                     </label>
                     <select
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
-                      className="w-full rounded-2xl border border-[#e8d4da] bg-[#fffafb] px-4 py-3 text-sm font-bold outline-none"
+                      className="w-full rounded-2xl border border-[#e5e5e5] bg-[#f5f5f5] px-4 py-3 text-sm font-bold outline-none"
                     >
                       {SUBJECT_OPTIONS.map((item) => (
                         <option key={item} value={item}>
@@ -1224,32 +1224,32 @@ export default function ExamScopePage() {
 
                   {subject === "__custom__" && (
                     <div className="md:col-span-2">
-                      <label className="mb-2 block text-xs font-black text-[#8f6270]">
+                      <label className="mb-2 block text-xs font-black text-[#171717]">
                         과목 직접입력
                       </label>
                       <input
                         value={customSubject}
                         onChange={(e) => setCustomSubject(e.target.value)}
                         placeholder="예: 중국어 / 생윤 / 문학"
-                        className="w-full rounded-2xl border border-[#e8d4da] bg-[#fffafb] px-4 py-3 text-sm font-bold outline-none"
+                        className="w-full rounded-2xl border border-[#e5e5e5] bg-[#f5f5f5] px-4 py-3 text-sm font-bold outline-none"
                       />
                     </div>
                   )}
 
                   <div className="md:col-span-2">
-                    <label className="mb-2 block text-xs font-black text-[#8f6270]">
+                    <label className="mb-2 block text-xs font-black text-[#171717]">
                       대단원 / 묶음
                     </label>
                     <input
                       value={majorUnit}
                       onChange={(e) => setMajorUnit(e.target.value)}
                       placeholder="예: Lesson 5 / 모의고사 3회 / Ⅱ단원"
-                      className="w-full rounded-2xl border border-[#e8d4da] bg-[#fffafb] px-4 py-3 text-sm font-bold outline-none"
+                      className="w-full rounded-2xl border border-[#e5e5e5] bg-[#f5f5f5] px-4 py-3 text-sm font-bold outline-none"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="mb-2 block text-xs font-black text-[#8f6270]">
+                    <label className="mb-2 block text-xs font-black text-[#171717]">
                       소단원 / 세부범위{" "}
                       <span className="font-semibold text-[#b998a3]">선택</span>
                     </label>
@@ -1257,12 +1257,12 @@ export default function ExamScopePage() {
                       value={unitName}
                       onChange={(e) => setUnitName(e.target.value)}
                       placeholder="예: 본문 1문단 / 20번 / 1-3 소단원"
-                      className="w-full rounded-2xl border border-[#e8d4da] bg-[#fffafb] px-4 py-3 text-sm font-bold outline-none"
+                      className="w-full rounded-2xl border border-[#e5e5e5] bg-[#f5f5f5] px-4 py-3 text-sm font-bold outline-none"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="mb-2 block text-xs font-black text-[#8f6270]">
+                    <label className="mb-2 block text-xs font-black text-[#171717]">
                       출판사{" "}
                       <span className="font-semibold text-[#b998a3]">선택</span>
                     </label>
@@ -1270,31 +1270,31 @@ export default function ExamScopePage() {
                       value={publisher}
                       onChange={(e) => setPublisher(e.target.value)}
                       placeholder="예: 능률 / 천재 / 비상"
-                      className="w-full rounded-2xl border border-[#e8d4da] bg-[#fffafb] px-4 py-3 text-sm font-bold outline-none"
+                      className="w-full rounded-2xl border border-[#e5e5e5] bg-[#f5f5f5] px-4 py-3 text-sm font-bold outline-none"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="mb-2 block text-xs font-black text-[#8f6270]">
+                    <label className="mb-2 block text-xs font-black text-[#171717]">
                       교재 / 자료명
                     </label>
                     <input
                       value={materialName}
                       onChange={(e) => setMaterialName(e.target.value)}
                       placeholder="예: 교과서 / 워크북 / 2024 3월 모고"
-                      className="w-full rounded-2xl border border-[#e8d4da] bg-[#fffafb] px-4 py-3 text-sm font-bold outline-none"
+                      className="w-full rounded-2xl border border-[#e5e5e5] bg-[#f5f5f5] px-4 py-3 text-sm font-bold outline-none"
                     />
                   </div>
 
                   <div className="md:col-span-5">
-                    <label className="mb-2 block text-xs font-black text-[#8f6270]">
+                    <label className="mb-2 block text-xs font-black text-[#171717]">
                       메모
                     </label>
                     <input
                       value={memo}
                       onChange={(e) => setMemo(e.target.value)}
                       placeholder="예: 서술형 가능성 높음 / 변형문제 필요"
-                      className="w-full rounded-2xl border border-[#e8d4da] bg-[#fffafb] px-4 py-3 text-sm font-bold outline-none"
+                      className="w-full rounded-2xl border border-[#e5e5e5] bg-[#f5f5f5] px-4 py-3 text-sm font-bold outline-none"
                     />
                   </div>
 
@@ -1303,7 +1303,7 @@ export default function ExamScopePage() {
                       type="button"
                       onClick={addRow}
                       disabled={loading}
-                      className="w-full rounded-2xl bg-[#4a3c40] px-4 py-3 text-sm font-black text-white disabled:bg-[#c8b8bf]"
+                      className="w-full rounded-2xl bg-[#171717] px-4 py-3 text-sm font-black text-white disabled:bg-[#c8b8bf]"
                     >
                       {loading ? "추가 중" : "추가"}
                     </button>
@@ -1314,7 +1314,7 @@ export default function ExamScopePage() {
 
             <Link
               href={`/students/${studentId}`}
-              className="rounded-full border border-[#f0d6df] bg-white px-4 py-3 text-sm font-black text-[#b06b82] transition hover:-translate-y-0.5 hover:bg-[#fff1f5]"
+              className="rounded-full border border-[#e5e5e5] bg-white px-4 py-3 text-sm font-black text-[#525252] transition hover:-translate-y-0.5 hover:bg-[#f7f7f7]"
             >
               학생 상세보기
             </Link>
@@ -1327,11 +1327,11 @@ export default function ExamScopePage() {
           </div>
         )}
 
-        <section className="rounded-[2rem] border border-[#ead9de] bg-white p-5 shadow-sm">
+        <section className="rounded-[2rem] border border-[#e5e5e5] bg-white p-5 shadow-sm">
           <div className="mb-5 flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div>
               <h2 className="text-xl font-black">진도표</h2>
-              <p className="mt-1 text-sm font-semibold text-[#8b767c]">
+              <p className="mt-1 text-sm font-semibold text-[#525252]">
                 과목별 · 대단원별로 묶어서 시험범위를 관리해요.
               </p>
             </div>
@@ -1351,7 +1351,7 @@ export default function ExamScopePage() {
           </div>
 
           {rows.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-[#e5cfd6] bg-[#fdf9fa] px-5 py-8 text-center text-sm font-semibold text-[#9a838b]">
+            <div className="rounded-3xl border border-dashed border-[#e5e5e5] bg-[#f7f7f7] px-5 py-8 text-center text-sm font-semibold text-[#525252]">
               아직 추가된 시험범위가 없어요.
             </div>
           ) : (
@@ -1365,17 +1365,17 @@ export default function ExamScopePage() {
                   return (
                     <div
                       key={subjectName}
-                      className="rounded-[2rem] border border-[#ead9de] bg-[#fffafb] p-5"
+                      className="rounded-[2rem] border border-[#e5e5e5] bg-[#f5f5f5] p-5"
                     >
                       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <h3 className="text-xl font-black text-[#3f3437]">
+                          <h3 className="text-xl font-black text-[#171717]">
                             <span className="mr-1">
                               {subjectEmoji(subjectName)}
                             </span>
                             {subjectName}
                           </h3>
-                          <p className="mt-1 text-xs font-bold text-[#9a838b]">
+                          <p className="mt-1 text-xs font-bold text-[#525252]">
                             단계 편집과 범위 수정은 필요할 때만 열어두면 돼.
                           </p>
                         </div>
@@ -1390,8 +1390,8 @@ export default function ExamScopePage() {
                             }
                             className={`rounded-full px-3 py-1.5 text-xs font-black shadow-sm ${
                               isTaskEditOpen
-                                ? "bg-[#4a3c40] text-white"
-                                : "border border-[#ead9de] bg-white text-[#8f6270]"
+                                ? "bg-[#171717] text-white"
+                                : "border border-[#e5e5e5] bg-white text-[#171717]"
                             }`}
                           >
                             단계편집
@@ -1406,8 +1406,8 @@ export default function ExamScopePage() {
                             }
                             className={`rounded-full px-3 py-1.5 text-xs font-black shadow-sm ${
                               isScopeEditOpen
-                                ? "bg-[#e86f9d] text-white"
-                                : "border border-[#ead9de] bg-white text-[#8f6270]"
+                                ? "bg-[#171717] text-white"
+                                : "border border-[#e5e5e5] bg-white text-[#171717]"
                             }`}
                           >
                             과목별 시험범위 편집
@@ -1416,7 +1416,7 @@ export default function ExamScopePage() {
                       </div>
 
                       {isTaskEditOpen && (
-                        <div className="mb-4 rounded-3xl border border-[#ead9de] bg-white p-4">
+                        <div className="mb-4 rounded-3xl border border-[#e5e5e5] bg-white p-4">
                           <div className="mb-3 flex flex-wrap items-center gap-2">
                             <input
                               value={newTaskBySubject[subjectName] || ""}
@@ -1427,13 +1427,13 @@ export default function ExamScopePage() {
                                 }))
                               }
                               placeholder="단계 추가 예: 본문암기 / 서술형"
-                              className="min-w-[220px] flex-1 rounded-2xl border border-[#e8d4da] bg-[#fffafb] px-3 py-2 text-sm font-bold outline-none"
+                              className="min-w-[220px] flex-1 rounded-2xl border border-[#e5e5e5] bg-[#f5f5f5] px-3 py-2 text-sm font-bold outline-none"
                             />
 
                             <button
                               type="button"
                               onClick={() => addTask(subjectName)}
-                              className="rounded-2xl bg-[#4a3c40] px-4 py-2 text-sm font-black text-white"
+                              className="rounded-2xl bg-[#171717] px-4 py-2 text-sm font-black text-white"
                             >
                               단계 추가
                             </button>
@@ -1447,7 +1447,7 @@ export default function ExamScopePage() {
                               return (
                                 <div
                                   key={task}
-                                  className="flex items-center gap-1 rounded-full border border-[#ead9de] bg-[#fdf9fa] px-2 py-1 text-xs"
+                                  className="flex items-center gap-1 rounded-full border border-[#e5e5e5] bg-[#f7f7f7] px-2 py-1 text-xs"
                                 >
                                   {isTaskEditing ? (
                                     <>
@@ -1456,7 +1456,7 @@ export default function ExamScopePage() {
                                         onChange={(e) =>
                                           setEditTaskName(e.target.value)
                                         }
-                                        className="w-28 rounded-lg border border-[#e8d4da] bg-white px-2 py-1 text-xs font-bold outline-none"
+                                        className="w-28 rounded-lg border border-[#e5e5e5] bg-white px-2 py-1 text-xs font-bold outline-none"
                                       />
 
                                       <button
@@ -1464,7 +1464,7 @@ export default function ExamScopePage() {
                                         onClick={() =>
                                           saveTaskEdit(subjectName, task)
                                         }
-                                        className="rounded-lg bg-[#4a3c40] px-2 py-1 text-white"
+                                        className="rounded-lg bg-[#171717] px-2 py-1 text-white"
                                       >
                                         저장
                                       </button>
@@ -1472,14 +1472,14 @@ export default function ExamScopePage() {
                                       <button
                                         type="button"
                                         onClick={cancelTaskEdit}
-                                        className="rounded-lg bg-white px-2 py-1 text-[#8f6270]"
+                                        className="rounded-lg bg-white px-2 py-1 text-[#171717]"
                                       >
                                         취소
                                       </button>
                                     </>
                                   ) : (
                                     <>
-                                      <span className="px-1 font-black text-[#8f6270]">
+                                      <span className="px-1 font-black text-[#171717]">
                                         {task}
                                       </span>
 
@@ -1492,7 +1492,7 @@ export default function ExamScopePage() {
                                             "left",
                                           )
                                         }
-                                        className="rounded-md bg-white px-1.5 py-0.5 text-[10px] font-black text-[#8f6270]"
+                                        className="rounded-md bg-white px-1.5 py-0.5 text-[10px] font-black text-[#171717]"
                                         title="왼쪽으로"
                                       >
                                         ←
@@ -1507,7 +1507,7 @@ export default function ExamScopePage() {
                                             "right",
                                           )
                                         }
-                                        className="rounded-md bg-white px-1.5 py-0.5 text-[10px] font-black text-[#8f6270]"
+                                        className="rounded-md bg-white px-1.5 py-0.5 text-[10px] font-black text-[#171717]"
                                         title="오른쪽으로"
                                       >
                                         →
@@ -1518,7 +1518,7 @@ export default function ExamScopePage() {
                                         onClick={() =>
                                           startTaskEdit(subjectName, task)
                                         }
-                                        className="rounded-md bg-white px-1.5 py-0.5 text-[10px] font-black text-[#8f6270]"
+                                        className="rounded-md bg-white px-1.5 py-0.5 text-[10px] font-black text-[#171717]"
                                       >
                                         수정
                                       </button>
@@ -1565,13 +1565,13 @@ export default function ExamScopePage() {
                           return (
                             <div
                               key={`${subjectName}-${materialNameKey}`}
-                              className="overflow-x-auto rounded-3xl border border-[#ead9de] bg-white"
+                              className="overflow-x-auto rounded-3xl border border-[#e5e5e5] bg-white"
                             >
-                              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#ead9de] bg-[#fff1f5] px-4 py-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e5e5e5] bg-[#f7f7f7] px-4 py-3">
                                 <div className="flex flex-wrap items-center gap-2">
                                   {isMaterialEditing ? (
-                                    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#ead9de] bg-white px-3 py-2">
-                                      <span className="text-xs font-black text-[#8f6270]">
+                                    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#e5e5e5] bg-white px-3 py-2">
+                                      <span className="text-xs font-black text-[#171717]">
                                         교재명
                                       </span>
                                       <input
@@ -1580,27 +1580,27 @@ export default function ExamScopePage() {
                                           setEditMaterialBoxName(e.target.value)
                                         }
                                         placeholder="교재 / 자료명"
-                                        className="w-48 rounded-xl border border-[#e8d4da] bg-[#fffafb] px-3 py-2 text-sm font-bold text-[#4a3c40] outline-none"
+                                        className="w-48 rounded-xl border border-[#e5e5e5] bg-[#f5f5f5] px-3 py-2 text-sm font-bold text-[#171717] outline-none"
                                       />
                                       <button
                                         type="button"
                                         onClick={() =>
                                           saveMaterialBoxEdit(materialRows)
                                         }
-                                        className="rounded-xl bg-[#4a3c40] px-3 py-2 text-xs font-black text-white"
+                                        className="rounded-xl bg-[#171717] px-3 py-2 text-xs font-black text-white"
                                       >
                                         저장
                                       </button>
                                       <button
                                         type="button"
                                         onClick={cancelMaterialBoxEdit}
-                                        className="rounded-xl border border-[#ead9de] bg-white px-3 py-2 text-xs font-black text-[#8f6270]"
+                                        className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-xs font-black text-[#171717]"
                                       >
                                         취소
                                       </button>
                                     </div>
                                   ) : (
-                                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#d93675]">
+                                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#171717]">
                                       {materialDisplayName}
                                     </span>
                                   )}
@@ -1614,7 +1614,7 @@ export default function ExamScopePage() {
                                           materialRows,
                                         )
                                       }
-                                      className="rounded-full border border-[#ead9de] bg-white px-3 py-1 text-xs font-black text-[#8f6270]"
+                                      className="rounded-full border border-[#e5e5e5] bg-white px-3 py-1 text-xs font-black text-[#171717]"
                                     >
                                       교재명 수정
                                     </button>
@@ -1624,11 +1624,11 @@ export default function ExamScopePage() {
                                     onClick={() =>
                                       copyMaterialBox(subjectName, materialRows)
                                     }
-                                    className="rounded-full border border-[#ead9de] bg-white px-3 py-1 text-xs font-black text-[#8f6270]"
+                                    className="rounded-full border border-[#e5e5e5] bg-white px-3 py-1 text-xs font-black text-[#171717]"
                                   >
                                     이 박스 복사
                                   </button>
-                                  <span className="text-xs font-bold text-[#9a838b]">
+                                  <span className="text-xs font-bold text-[#525252]">
                                     복사한 박스는 다른 학생 페이지 복붙칸에
                                     그대로 붙여넣기 가능
                                   </span>
@@ -1636,7 +1636,7 @@ export default function ExamScopePage() {
                               </div>
 
                               {isScopeEditOpen && (
-                                <div className="border-b border-[#ead9de] bg-[#fffafb] px-4 py-3">
+                                <div className="border-b border-[#e5e5e5] bg-[#f5f5f5] px-4 py-3">
                                   <div className="grid gap-2 md:grid-cols-5">
                                     <input
                                       value={quickDraft.majorUnit}
@@ -1648,7 +1648,7 @@ export default function ExamScopePage() {
                                         )
                                       }
                                       placeholder="대단원 추가 예: Lesson 6 / 3월 모고"
-                                      className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm font-bold outline-none md:col-span-2"
+                                      className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-bold outline-none md:col-span-2"
                                     />
                                     <input
                                       value={quickDraft.unitName}
@@ -1660,7 +1660,7 @@ export default function ExamScopePage() {
                                         )
                                       }
                                       placeholder="소단원/세부범위 선택"
-                                      className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm font-bold outline-none"
+                                      className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-bold outline-none"
                                     />
                                     <input
                                       value={quickDraft.memo}
@@ -1672,7 +1672,7 @@ export default function ExamScopePage() {
                                         )
                                       }
                                       placeholder="메모 선택"
-                                      className="rounded-xl border border-[#e8d4da] bg-white px-3 py-2 text-sm font-bold outline-none"
+                                      className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-bold outline-none"
                                     />
                                     <button
                                       type="button"
@@ -1684,7 +1684,7 @@ export default function ExamScopePage() {
                                         )
                                       }
                                       disabled={loading}
-                                      className="rounded-xl bg-[#e86f9d] px-3 py-2 text-sm font-black text-white disabled:bg-[#d8b5c1]"
+                                      className="rounded-xl bg-[#171717] px-3 py-2 text-sm font-black text-white disabled:bg-[#d8b5c1]"
                                     >
                                       이 교재에 범위 추가
                                     </button>
@@ -1694,22 +1694,22 @@ export default function ExamScopePage() {
 
                               <table className="w-full min-w-[980px] border-collapse bg-white text-sm">
                                 <thead>
-                                  <tr className="border-b border-[#ead9de] bg-[#fffafb]">
-                                    <th className="w-[280px] px-3 py-3 text-left text-xs font-black text-[#8f6270]">
+                                  <tr className="border-b border-[#e5e5e5] bg-[#f5f5f5]">
+                                    <th className="w-[280px] px-3 py-3 text-left text-xs font-black text-[#171717]">
                                       범위
                                     </th>
 
                                     {tasks.map((task) => (
                                       <th
                                         key={task}
-                                        className="min-w-[108px] px-2 py-3 text-center text-xs font-black text-[#8f6270]"
+                                        className="min-w-[108px] px-2 py-3 text-center text-xs font-black text-[#171717]"
                                       >
                                         {task}
                                       </th>
                                     ))}
 
                                     {isScopeEditOpen && (
-                                      <th className="w-[150px] px-3 py-3 text-center text-xs font-black text-[#8f6270]">
+                                      <th className="w-[150px] px-3 py-3 text-center text-xs font-black text-[#171717]">
                                         관리
                                       </th>
                                     )}
@@ -1728,7 +1728,7 @@ export default function ExamScopePage() {
                                       <div className="space-y-1.5">
                                         <div className="flex items-center">
                                           <span
-                                            className="inline-flex whitespace-nowrap rounded-full bg-[#ffe4ef] px-2.5 py-1 text-xs font-black text-[#d93675]"
+                                            className="inline-flex whitespace-nowrap rounded-full bg-[#e5e5e5] px-2.5 py-1 text-xs font-black text-[#171717]"
                                             title={currentMajorUnit}
                                           >
                                             {currentMajorUnit}
@@ -1738,7 +1738,7 @@ export default function ExamScopePage() {
                                         <div className="flex items-center gap-2 whitespace-nowrap">
                                           {showSubUnit && (
                                             <span
-                                              className="inline-flex whitespace-nowrap rounded-full bg-[#fff7fa] px-2.5 py-1 text-[11px] font-extrabold leading-none text-[#8f6270]"
+                                              className="inline-flex whitespace-nowrap rounded-full bg-[#ffffff] px-2.5 py-1 text-[11px] font-extrabold leading-none text-[#171717]"
                                               title={row.unit_name}
                                             >
                                               {row.unit_name}
@@ -1747,7 +1747,7 @@ export default function ExamScopePage() {
 
                                           {row.memo && (
                                             <span
-                                              className="inline-flex whitespace-nowrap text-[11px] font-bold leading-none text-[#9a838b]"
+                                              className="inline-flex whitespace-nowrap text-[11px] font-bold leading-none text-[#525252]"
                                               title={row.memo}
                                             >
                                               {row.memo}
@@ -1761,7 +1761,7 @@ export default function ExamScopePage() {
                                       <Fragment key={row.id}>
                                         <tr
                                           key={`${row.id}-row`}
-                                          className="border-b border-[#ead9de] last:border-b-0"
+                                          className="border-b border-[#e5e5e5] last:border-b-0"
                                         >
                                           <td className="px-3 py-3 align-top">
                                             {rangeDisplay}
@@ -1815,7 +1815,7 @@ export default function ExamScopePage() {
                                                   onClick={() =>
                                                     moveRowOrder(row, "up", materialRows)
                                                   }
-                                                  className="rounded-xl border border-[#ead9de] bg-white px-2.5 py-2 text-xs font-black text-[#8f6270]"
+                                                  className="rounded-xl border border-[#e5e5e5] bg-white px-2.5 py-2 text-xs font-black text-[#171717]"
                                                   title="위로"
                                                 >
                                                   ↑
@@ -1826,7 +1826,7 @@ export default function ExamScopePage() {
                                                   onClick={() =>
                                                     moveRowOrder(row, "down", materialRows)
                                                   }
-                                                  className="rounded-xl border border-[#ead9de] bg-white px-2.5 py-2 text-xs font-black text-[#8f6270]"
+                                                  className="rounded-xl border border-[#e5e5e5] bg-white px-2.5 py-2 text-xs font-black text-[#171717]"
                                                   title="아래로"
                                                 >
                                                   ↓
@@ -1835,7 +1835,7 @@ export default function ExamScopePage() {
                                                 <button
                                                   type="button"
                                                   onClick={() => startEdit(row)}
-                                                  className="rounded-xl border border-[#ead9de] bg-white px-3 py-2 text-xs font-black text-[#8f6270]"
+                                                  className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-xs font-black text-[#171717]"
                                                 >
                                                   수정
                                                 </button>
@@ -1857,7 +1857,7 @@ export default function ExamScopePage() {
                                         {isEditing && (
                                           <tr
                                             key={`${row.id}-edit`}
-                                            className="border-b border-[#ead9de] bg-[#fffafb]"
+                                            className="border-b border-[#e5e5e5] bg-[#f5f5f5]"
                                           >
                                             <td
                                               colSpan={
@@ -1866,9 +1866,9 @@ export default function ExamScopePage() {
                                               }
                                               className="px-4 py-4"
                                             >
-                                              <div className="rounded-3xl border border-[#ead9de] bg-white p-4 shadow-sm">
+                                              <div className="rounded-3xl border border-[#e5e5e5] bg-white p-4 shadow-sm">
                                                 <div className="mb-3 flex items-center justify-between gap-2">
-                                                  <p className="text-sm font-black text-[#8f6270]">
+                                                  <p className="text-sm font-black text-[#171717]">
                                                     시험범위 수정
                                                   </p>
                                                   <div className="flex gap-2">
@@ -1877,7 +1877,7 @@ export default function ExamScopePage() {
                                                       onClick={() =>
                                                         saveEdit(row)
                                                       }
-                                                      className="rounded-xl bg-[#4a3c40] px-4 py-2 text-xs font-black text-white"
+                                                      className="rounded-xl bg-[#171717] px-4 py-2 text-xs font-black text-white"
                                                     >
                                                       저장
                                                     </button>
@@ -1885,7 +1885,7 @@ export default function ExamScopePage() {
                                                     <button
                                                       type="button"
                                                       onClick={cancelEdit}
-                                                      className="rounded-xl border border-[#ead9de] bg-white px-4 py-2 text-xs font-black text-[#8f6270]"
+                                                      className="rounded-xl border border-[#e5e5e5] bg-white px-4 py-2 text-xs font-black text-[#171717]"
                                                     >
                                                       취소
                                                     </button>
@@ -1901,7 +1901,7 @@ export default function ExamScopePage() {
                                                       )
                                                     }
                                                     placeholder="과목"
-                                                    className="rounded-xl border border-[#e8d4da] bg-[#fffafb] px-3 py-2 text-sm font-bold outline-none"
+                                                    className="rounded-xl border border-[#e5e5e5] bg-[#f5f5f5] px-3 py-2 text-sm font-bold outline-none"
                                                   />
 
                                                   <input
@@ -1913,7 +1913,7 @@ export default function ExamScopePage() {
                                                     }
                                                     placeholder="순서"
                                                     type="number"
-                                                    className="rounded-xl border border-[#e8d4da] bg-[#fffafb] px-3 py-2 text-sm font-bold outline-none"
+                                                    className="rounded-xl border border-[#e5e5e5] bg-[#f5f5f5] px-3 py-2 text-sm font-bold outline-none"
                                                   />
 
                                                   <input
@@ -1924,7 +1924,7 @@ export default function ExamScopePage() {
                                                       )
                                                     }
                                                     placeholder="출판사 선택"
-                                                    className="rounded-xl border border-[#e8d4da] bg-[#fffafb] px-3 py-2 text-sm font-bold outline-none"
+                                                    className="rounded-xl border border-[#e5e5e5] bg-[#f5f5f5] px-3 py-2 text-sm font-bold outline-none"
                                                   />
 
                                                   <input
@@ -1935,7 +1935,7 @@ export default function ExamScopePage() {
                                                       )
                                                     }
                                                     placeholder="교재 / 자료"
-                                                    className="rounded-xl border border-[#e8d4da] bg-[#fffafb] px-3 py-2 text-sm font-bold outline-none md:col-span-2"
+                                                    className="rounded-xl border border-[#e5e5e5] bg-[#f5f5f5] px-3 py-2 text-sm font-bold outline-none md:col-span-2"
                                                   />
 
                                                   <input
@@ -1946,7 +1946,7 @@ export default function ExamScopePage() {
                                                       )
                                                     }
                                                     placeholder="대단원 / 묶음"
-                                                    className="rounded-xl border border-[#e8d4da] bg-[#fffafb] px-3 py-2 text-sm font-bold outline-none md:col-span-2"
+                                                    className="rounded-xl border border-[#e5e5e5] bg-[#f5f5f5] px-3 py-2 text-sm font-bold outline-none md:col-span-2"
                                                   />
 
                                                   <input
@@ -1957,7 +1957,7 @@ export default function ExamScopePage() {
                                                       )
                                                     }
                                                     placeholder="소단원 / 세부범위 선택"
-                                                    className="rounded-xl border border-[#e8d4da] bg-[#fffafb] px-3 py-2 text-sm font-bold outline-none md:col-span-2"
+                                                    className="rounded-xl border border-[#e5e5e5] bg-[#f5f5f5] px-3 py-2 text-sm font-bold outline-none md:col-span-2"
                                                   />
 
                                                   <input
@@ -1968,7 +1968,7 @@ export default function ExamScopePage() {
                                                       )
                                                     }
                                                     placeholder="메모"
-                                                    className="rounded-xl border border-[#e8d4da] bg-[#fffafb] px-3 py-2 text-sm font-bold outline-none md:col-span-4"
+                                                    className="rounded-xl border border-[#e5e5e5] bg-[#f5f5f5] px-3 py-2 text-sm font-bold outline-none md:col-span-4"
                                                   />
                                                 </div>
                                               </div>

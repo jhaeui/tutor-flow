@@ -55,15 +55,15 @@ const weekDays = [
 
 export default function CalendarPage() {
   return (
-    <main className="min-h-screen bg-[#f7f3ee] px-6 py-8 text-[#2f2a25]">
+    <main className="min-h-screen bg-[#ffffff] px-6 py-8 text-[#171717]">
       <div className="mx-auto max-w-7xl">
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <a href="/" className="text-sm font-semibold text-[#8b7d70]">
+            <a href="/" className="text-sm font-semibold text-[#525252]">
               ← 대시보드로
             </a>
             <h1 className="mt-3 text-3xl font-bold">전체 일정 캘린더</h1>
-            <p className="mt-2 text-sm text-[#8b7d70]">
+            <p className="mt-2 text-sm text-[#525252]">
               수업, 수행평가, 자료제작, 정산 일정을 한눈에 보는 페이지
             </p>
           </div>
@@ -77,7 +77,7 @@ export default function CalendarPage() {
             </a>
             <a
               href="/lessons/new"
-              className="rounded-full bg-[#2f2a25] px-5 py-3 text-sm font-semibold text-white"
+              className="rounded-full bg-[#171717] px-5 py-3 text-sm font-semibold text-white"
             >
               + 수업 기록
             </a>
@@ -98,7 +98,7 @@ export default function CalendarPage() {
               className="min-h-[420px] rounded-3xl bg-white p-4 shadow-sm"
             >
               <div className="mb-4 rounded-2xl bg-[#fffaf5] p-3">
-                <p className="text-sm font-semibold text-[#8b7d70]">{day.date}</p>
+                <p className="text-sm font-semibold text-[#525252]">{day.date}</p>
                 <h2 className="mt-1 text-2xl font-bold">{day.day}</h2>
               </div>
 
@@ -112,7 +112,7 @@ export default function CalendarPage() {
                       <span className="rounded-full bg-[#f0dfcf] px-2 py-1 text-[11px] font-bold">
                         {item.type}
                       </span>
-                      <span className="text-[11px] font-semibold text-[#8b7d70]">
+                      <span className="text-[11px] font-semibold text-[#525252]">
                         {item.time}
                       </span>
                     </div>
@@ -135,7 +135,7 @@ export default function CalendarPage() {
 function SummaryBox({ title, value }: { title: string; value: string }) {
   return (
     <div className="rounded-3xl bg-white p-5 shadow-sm">
-      <p className="text-sm font-semibold text-[#8b7d70]">{title}</p>
+      <p className="text-sm font-semibold text-[#525252]">{title}</p>
       <p className="mt-2 text-2xl font-bold">{value}</p>
     </div>
   );

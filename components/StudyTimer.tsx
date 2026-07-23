@@ -129,7 +129,7 @@ export default function StudyTimer({ subjects, saveAction }: StudyTimerProps) {
         <button
           type="button"
           onClick={startOrPause}
-          className="rounded-2xl bg-[#f08ab2] px-3 py-2.5 text-xs font-black text-white"
+          className="rounded-2xl bg-[#7a6f65] px-3 py-2.5 text-xs font-black text-white"
         >
           {running ? "일시정지" : startedAt ? "다시 시작" : "시작"}
         </button>

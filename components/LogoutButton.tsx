@@ -15,7 +15,7 @@ export default function LogoutButton() {
     <form action={logout}>
       <button
         type="submit"
-        className="rounded-2xl border border-[#eadfd5] bg-white px-4 py-2 text-sm text-[#5f4b3f] hover:bg-[#fff7f1]"
+        className="rounded-full border border-[#e5e7eb] bg-white px-2 py-0.5 text-[9px] font-semibold text-[#9ca3af] hover:bg-[#f5f5f5]"
       >
         로그아웃
       </button>

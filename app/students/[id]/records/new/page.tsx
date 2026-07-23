@@ -141,22 +141,22 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  not_started: "bg-white text-[#8b767c] border-[#ead9de]",
-  in_progress: "bg-[#fff8e8] text-[#8a6630] border-[#ead6af]",
-  done: "bg-[#eef8f2] text-[#47735b] border-[#cce6d6]",
-  review: "bg-[#f4f1ff] text-[#6656a6] border-[#d8d0f2]",
-  homework: "bg-[#fff1f4] text-[#9f5264] border-[#efcbd4]",
+  not_started: "bg-white text-[#525252] border-[#e5e5e5]",
+  in_progress: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
+  done: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
+  review: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
+  homework: "bg-[#f5f5f5] text-[#171717] border-[#d4d4d4]",
   paused: "bg-[#f1f1f1] text-[#777] border-[#d8d8d8]",
-  planned: "bg-[#f5efff] text-[#6d55a8] border-[#d8c8f0]",
+  planned: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
 };
 
 const subjectBadgeStyle: Record<string, string> = {
-  국어: "bg-[#fff1f4] text-[#9f5264] border-[#efcbd4]",
-  영어: "bg-[#fdf2f6] text-[#96576b] border-[#ebcbd6]",
-  수학: "bg-[#f4f1ff] text-[#6656a6] border-[#d8d0f2]",
-  사회: "bg-[#fff7e8] text-[#8a6630] border-[#ead6af]",
-  과학: "bg-[#eef8f2] text-[#47735b] border-[#cce6d6]",
-  한국사: "bg-[#f8f1ea] text-[#7b604d] border-[#e3d1c3]",
+  국어: "bg-[#f5f5f5] text-[#171717] border-[#d4d4d4]",
+  영어: "bg-[#fdf2f6] text-[#404040] border-[#d4d4d4]",
+  수학: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
+  사회: "bg-[#fff7e8] text-[#404040] border-[#d4d4d4]",
+  과학: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
+  한국사: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
 };
 
 function makeLocalId() {
@@ -1224,15 +1224,15 @@ export default function NewStudentRecordPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fbf7f8] px-5 py-8 text-[#3f3437]">
+    <main className="min-h-screen bg-[#ffffff] px-5 py-8 text-[#171717]">
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-[#a87583]">
+            <p className="text-sm font-semibold text-[#525252]">
               수업 기록 추가
             </p>
 
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-[#3f3437]">
+            <h1 className="mt-1 text-3xl font-black tracking-tight text-[#171717]">
               {studentName ? `${studentName} 수업 기록` : "수업 기록"}
             </h1>
           </div>
@@ -1240,14 +1240,14 @@ export default function NewStudentRecordPage() {
           <div className="flex gap-2">
             <Link
               href={`/students/${studentId}`}
-              className="rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 text-sm font-bold text-[#8f6270]"
+              className="rounded-2xl border border-[#e5e5e5] bg-white px-4 py-3 text-sm font-bold text-[#171717]"
             >
               상세보기
             </Link>
 
             <Link
               href="/students"
-              className="rounded-2xl bg-[#4a3c40] px-4 py-3 text-sm font-bold text-white"
+              className="rounded-2xl bg-[#171717] px-4 py-3 text-sm font-bold text-white"
             >
               학생 목록
             </Link>
@@ -1260,10 +1260,10 @@ export default function NewStudentRecordPage() {
           </div>
         )}
 
-        <section className="rounded-[2rem] border border-[#ead9de] bg-white p-6 shadow-sm">
+        <section className="rounded-[2rem] border border-[#e5e5e5] bg-white p-6 shadow-sm">
           <div className="grid gap-4 sm:grid-cols-4">
             <div>
-              <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
+              <label className="mb-2 block text-sm font-bold text-[#5c5751]">
                 수업 날짜
               </label>
 
@@ -1271,12 +1271,12 @@ export default function NewStudentRecordPage() {
                 type="date"
                 value={lessonDate}
                 onChange={(e) => setLessonDate(e.target.value)}
-                className="w-full rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 py-3 outline-none"
+                className="w-full rounded-2xl border border-[#e5e5e5] bg-[#f7f7f7] px-4 py-3 outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
+              <label className="mb-2 block text-sm font-bold text-[#5c5751]">
                 시작시간
               </label>
 
@@ -1284,12 +1284,12 @@ export default function NewStudentRecordPage() {
                 type="time"
                 value={startTime}
                 onChange={(e) => handleStartTimeChange(e.target.value)}
-                className="w-full rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 py-3 outline-none"
+                className="w-full rounded-2xl border border-[#e5e5e5] bg-[#f7f7f7] px-4 py-3 outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
+              <label className="mb-2 block text-sm font-bold text-[#5c5751]">
                 종료시간
               </label>
 
@@ -1297,16 +1297,16 @@ export default function NewStudentRecordPage() {
                 type="time"
                 value={endTime}
                 onChange={(e) => handleEndTimeChange(e.target.value)}
-                className="w-full rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 py-3 outline-none"
+                className="w-full rounded-2xl border border-[#e5e5e5] bg-[#f7f7f7] px-4 py-3 outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
+              <label className="mb-2 block text-sm font-bold text-[#5c5751]">
                 수업시간
               </label>
 
-              <div className="flex h-[50px] items-center rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 text-sm font-black text-[#9f6c7a]">
+              <div className="flex h-[50px] items-center rounded-2xl border border-[#e5e5e5] bg-[#f7f7f7] px-4 text-sm font-black text-[#525252]">
                 {durationText || "자동 계산"}
               </div>
             </div>
@@ -1316,8 +1316,8 @@ export default function NewStudentRecordPage() {
             <label
               className={`flex cursor-pointer gap-3 rounded-3xl border p-4 transition ${
                 isExtra
-                  ? "border-[#c995a4] bg-[#fff1f4]"
-                  : "border-[#ead9de] bg-[#fdf9fa]"
+                  ? "border-[#9a8a7a] bg-[#f5f5f5]"
+                  : "border-[#e5e5e5] bg-[#f7f7f7]"
               }`}
             >
               <input
@@ -1328,7 +1328,7 @@ export default function NewStudentRecordPage() {
               />
 
               <div>
-                <p className="text-sm font-black text-[#3f3437]">
+                <p className="text-sm font-black text-[#171717]">
                   추가수업으로 기록하기
                 </p>
               </div>
@@ -1337,8 +1337,8 @@ export default function NewStudentRecordPage() {
             <div
               className={`rounded-3xl border p-4 transition ${
                 hasRegularExtra
-                  ? "border-[#c995a4] bg-[#fff1f4]"
-                  : "border-[#ead9de] bg-[#fdf9fa]"
+                  ? "border-[#9a8a7a] bg-[#f5f5f5]"
+                  : "border-[#e5e5e5] bg-[#f7f7f7]"
               }`}
             >
               <label className="flex cursor-pointer gap-3">
@@ -1352,7 +1352,7 @@ export default function NewStudentRecordPage() {
                 />
 
                 <div>
-                  <p className="text-sm font-black text-[#3f3437]">
+                  <p className="text-sm font-black text-[#171717]">
                     정규 + 추가수업
                   </p>
                 </div>
@@ -1361,7 +1361,7 @@ export default function NewStudentRecordPage() {
               {hasRegularExtra && (
                 <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                   <div>
-                    <label className="mb-2 block text-xs font-black text-[#8f6270]">
+                    <label className="mb-2 block text-xs font-black text-[#171717]">
                       추가수업 시간
                     </label>
                     <div className="flex items-center gap-2">
@@ -1371,17 +1371,17 @@ export default function NewStudentRecordPage() {
                         step="5"
                         value={extraMinutes}
                         onChange={(e) => setExtraMinutes(e.target.value)}
-                        className="w-full rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
+                        className="w-full rounded-2xl border border-[#e5e5e5] bg-white px-4 py-3 outline-none"
                       />
-                      <span className="shrink-0 text-sm font-black text-[#6f5a61]">
+                      <span className="shrink-0 text-sm font-black text-[#5c5751]">
                         분
                       </span>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-[#ead9de] bg-white px-4 py-3 text-xs font-bold text-[#8b767c]">
+                  <div className="rounded-2xl border border-[#e5e5e5] bg-white px-4 py-3 text-xs font-bold text-[#525252]">
                     정규 수업시간:{" "}
-                    <span className="text-[#9f6c7a]">
+                    <span className="text-[#525252]">
                       {billableText || "0분"}
                     </span>
                   </div>
@@ -1390,20 +1390,20 @@ export default function NewStudentRecordPage() {
             </div>
           </div>
 
-          <div className="mt-8 rounded-[2rem] border border-[#ead9de] bg-[#fdf9fa] p-5">
+          <div className="mt-8 rounded-[2rem] border border-[#e5e5e5] bg-[#f7f7f7] p-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-black text-[#3f3437]">
+                <h2 className="text-xl font-black text-[#171717]">
                   저번 숙제 확인
                 </h2>
-                <p className="mt-1 text-sm font-bold text-[#8b767c]">
+                <p className="mt-1 text-sm font-bold text-[#525252]">
                   과목별 박스 안에서 같은 범위 숙제를 한 줄로 묶어 확인해요.
                 </p>
               </div>
             </div>
 
             {previousHomeworkTasks.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-[#e5cfd6] bg-white px-5 py-5 text-sm font-semibold text-[#9a838b]">
+              <div className="rounded-3xl border border-dashed border-[#e5e5e5] bg-white px-5 py-5 text-sm font-semibold text-[#525252]">
                 확인할 지난 숙제가 없어요.
               </div>
             ) : (
@@ -1413,18 +1413,18 @@ export default function NewStudentRecordPage() {
                 ).map(({ subject, units }) => (
                   <div
                     key={subject}
-                    className="overflow-hidden rounded-3xl border border-[#ead9de] bg-white shadow-sm"
+                    className="overflow-hidden rounded-3xl border border-[#e5e5e5] bg-white shadow-sm"
                   >
-                    <div className="flex items-center justify-between border-b border-[#f3e2e7] bg-[#fff7fa] px-5 py-3">
-                      <p className="text-base font-black text-[#9f5264]">
+                    <div className="flex items-center justify-between border-b border-[#e5e5e5] bg-[#ffffff] px-5 py-3">
+                      <p className="text-base font-black text-[#171717]">
                         {subjectEmoji(subject)} {subject}
                       </p>
-                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-[#9f5264]">
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-[#171717]">
                         {units.reduce((sum, unit) => sum + unit.rows.length, 0)}
                         개
                       </span>
                     </div>
-                    <div className="divide-y divide-[#f3e2e7]">
+                    <div className="divide-y divide-[#e5e5e5]">
                       {units.map((unit) => (
                         <div
                           key={`${subject}-${unitGroupKeyForSelectable({
@@ -1440,7 +1440,7 @@ export default function NewStudentRecordPage() {
                           })}`}
                           className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(180px,0.9fr)_minmax(0,1.6fr)]"
                         >
-                          <div className="text-sm font-black text-[#9f6c7a]">
+                          <div className="text-sm font-black text-[#525252]">
                             {selectableUnitTitle(unit)}
                           </div>
                           <div className="flex flex-wrap gap-2">
@@ -1458,15 +1458,15 @@ export default function NewStudentRecordPage() {
                                   key={task.id}
                                   className={`flex flex-wrap items-center gap-2 rounded-2xl border px-3 py-2 text-sm font-black shadow-sm transition ${
                                     done
-                                      ? "border-[#cce6d6] bg-[#eef8f2] text-[#47735b]"
+                                      ? "border-[#d4d4d4] bg-[#f7f7f7] text-[#404040]"
                                       : deferred
-                                        ? "border-[#ead6af] bg-[#fff8e8] text-[#8a6630]"
-                                        : "border-[#efdbe1] bg-white text-[#4a3c40]"
+                                        ? "border-[#d4d4d4] bg-[#f7f7f7] text-[#404040]"
+                                        : "border-[#e5e5e5] bg-white text-[#171717]"
                                   }`}
                                 >
                                   <span>{task.taskName}</span>
                                   {wasDeferred && (
-                                    <span className="rounded-full bg-[#fff8e8] px-2 py-0.5 text-[11px] font-black text-[#8a6630]">
+                                    <span className="rounded-full bg-[#f7f7f7] px-2 py-0.5 text-[11px] font-black text-[#404040]">
                                       저번에 미룸
                                     </span>
                                   )}
@@ -1484,7 +1484,7 @@ export default function NewStudentRecordPage() {
                                     onClick={() =>
                                       toggleDeferredPreviousHomework(task.id)
                                     }
-                                    className="rounded-full border border-[#ead6af] bg-[#fff8e8] px-2.5 py-1 text-[11px] font-black text-[#8a6630]"
+                                    className="rounded-full border border-[#d4d4d4] bg-[#f7f7f7] px-2.5 py-1 text-[11px] font-black text-[#404040]"
                                   >
                                     {deferred ? "미루기취소" : "미루기"}
                                   </button>
@@ -1504,10 +1504,10 @@ export default function NewStudentRecordPage() {
           <div className="mt-8">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-xl font-black text-[#3f3437]">
+                <h2 className="text-xl font-black text-[#171717]">
                   과목별 진도 / 숙제 / 다음 수업 계획
                 </h2>
-                <p className="mt-1 text-sm font-semibold text-[#8b767c]">
+                <p className="mt-1 text-sm font-semibold text-[#525252]">
                   과목을 추가한 뒤 필요한 박스만 열어서 기록하면 돼요.
                 </p>
               </div>
@@ -1515,7 +1515,7 @@ export default function NewStudentRecordPage() {
               <button
                 type="button"
                 onClick={addSubjectRecord}
-                className="rounded-2xl bg-[#b98594] px-5 py-3 text-sm font-black text-white shadow-sm"
+                className="rounded-2xl bg-[#171717] px-5 py-3 text-sm font-black text-white shadow-sm"
               >
                 과목 추가
               </button>
@@ -1541,12 +1541,12 @@ export default function NewStudentRecordPage() {
                   .filter(Boolean);
                 const badgeClass =
                   subjectBadgeStyle[record.subject] ||
-                  "bg-[#fffafb] text-[#8f6270] border-[#ead9de]";
+                  "bg-[#f5f5f5] text-[#171717] border-[#e5e5e5]";
 
                 return (
                   <article
                     key={record.id}
-                    className="rounded-[2rem] border border-[#ead9de] bg-[#fdf9fa] p-5"
+                    className="rounded-[2rem] border border-[#e5e5e5] bg-[#f7f7f7] p-5"
                   >
                     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                       <div className="flex flex-wrap items-center gap-2">
@@ -1563,7 +1563,7 @@ export default function NewStudentRecordPage() {
                           <button
                             type="button"
                             onClick={() => editSubjectName(record.id)}
-                            className="rounded-full border border-[#ead9de] bg-white px-2 py-1 text-[13px] font-black text-[#8f6270]"
+                            className="rounded-full border border-[#e5e5e5] bg-white px-2 py-1 text-[13px] font-black text-[#171717]"
                           >
                             과목 수정
                           </button>
@@ -1573,15 +1573,15 @@ export default function NewStudentRecordPage() {
                       <button
                         type="button"
                         onClick={() => removeSubjectRecord(record.id)}
-                        className="rounded-2xl border border-[#e8d4da] bg-white px-3 py-1 text-sm font-bold text-[#8f6270]"
+                        className="rounded-2xl border border-[#e5e5e5] bg-white px-3 py-1 text-sm font-bold text-[#171717]"
                       >
                         삭제
                       </button>
                     </div>
 
                     {record.isEditingSubject && (
-                      <div className="mb-5 rounded-3xl border border-[#ead9de] bg-white p-4">
-                        <label className="mb-2 block text-sm font-bold text-[#6f5a61]">
+                      <div className="mb-5 rounded-3xl border border-[#e5e5e5] bg-white p-4">
+                        <label className="mb-2 block text-sm font-bold text-[#5c5751]">
                           과목
                         </label>
 
@@ -1600,7 +1600,7 @@ export default function NewStudentRecordPage() {
                                 updateSubject(record.id, value, "preset");
                               }
                             }}
-                            className="w-full rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 py-3 outline-none"
+                            className="w-full rounded-2xl border border-[#e5e5e5] bg-[#f7f7f7] px-4 py-3 outline-none"
                           >
                             {SUBJECTS.map((subject) => (
                               <option key={subject} value={subject}>
@@ -1614,7 +1614,7 @@ export default function NewStudentRecordPage() {
                             <button
                               type="button"
                               onClick={() => saveSubjectName(record.id)}
-                              className="rounded-2xl bg-[#4a3c40] px-5 py-3 text-sm font-black text-white"
+                              className="rounded-2xl bg-[#171717] px-5 py-3 text-sm font-black text-white"
                             >
                               선택 완료
                             </button>
@@ -1629,13 +1629,13 @@ export default function NewStudentRecordPage() {
                                 updateCustomSubject(record.id, e.target.value)
                               }
                               placeholder="예: 문학, 독해, 통합사회, 생명과학"
-                              className="w-full rounded-2xl border border-[#e8d4da] bg-[#fdf9fa] px-4 py-3 outline-none"
+                              className="w-full rounded-2xl border border-[#e5e5e5] bg-[#f7f7f7] px-4 py-3 outline-none"
                             />
 
                             <button
                               type="button"
                               onClick={() => saveSubjectName(record.id)}
-                              className="rounded-2xl bg-[#4a3c40] px-5 py-3 text-sm font-black text-white disabled:bg-[#cdbdc2]"
+                              className="rounded-2xl bg-[#171717] px-5 py-3 text-sm font-black text-white disabled:bg-[#a3a3a3]"
                               disabled={!record.subject.trim()}
                             >
                               과목 저장
@@ -1652,7 +1652,7 @@ export default function NewStudentRecordPage() {
                           onClick={() =>
                             toggleSubjectSection(record.id, "progress")
                           }
-                          className="rounded-full bg-[#4a3c40] px-4 py-2 text-xs font-black text-white disabled:bg-[#cdbdc2]"
+                          className="rounded-full bg-[#171717] px-4 py-2 text-xs font-black text-white disabled:bg-[#a3a3a3]"
                           disabled={!record.subject.trim()}
                         >
                           + 진도 추가
@@ -1665,7 +1665,7 @@ export default function NewStudentRecordPage() {
                           onClick={() =>
                             toggleSubjectSection(record.id, "homework")
                           }
-                          className="rounded-full bg-[#b98594] px-4 py-2 text-xs font-black text-white disabled:bg-[#d8b6c0]"
+                          className="rounded-full bg-[#171717] px-4 py-2 text-xs font-black text-white disabled:bg-[#a3a3a3]"
                           disabled={!record.subject.trim()}
                         >
                           + 숙제 추가
@@ -1678,7 +1678,7 @@ export default function NewStudentRecordPage() {
                           onClick={() =>
                             toggleSubjectSection(record.id, "plan")
                           }
-                          className="rounded-full border border-[#d8c8f0] bg-[#f5efff] px-4 py-2 text-xs font-black text-[#6d55a8] disabled:opacity-50"
+                          className="rounded-full border border-[#d4d4d4] bg-[#f7f7f7] px-4 py-2 text-xs font-black text-[#404040] disabled:opacity-50"
                           disabled={!record.subject.trim()}
                         >
                           + 다음 수업 계획 추가
@@ -1689,15 +1689,15 @@ export default function NewStudentRecordPage() {
                     {!record.show_progress &&
                     !record.show_homework &&
                     !record.show_plan ? (
-                      <p className="rounded-3xl border border-dashed border-[#ead9de] bg-white px-5 py-5 text-sm font-semibold text-[#9a838b]">
+                      <p className="rounded-3xl border border-dashed border-[#e5e5e5] bg-white px-5 py-5 text-sm font-semibold text-[#525252]">
                         진도, 숙제, 다음 수업 계획 중 필요한 것만 추가해줘.
                       </p>
                     ) : (
                       <div className="mt-5 grid gap-4 lg:grid-cols-3">
                         {record.show_progress && (
-                          <div className="rounded-3xl border border-[#e8d4da] bg-white p-4">
+                          <div className="rounded-3xl border border-[#e5e5e5] bg-white p-4">
                             <div className="mb-3 flex items-center justify-between gap-3">
-                              <p className="text-sm font-black text-[#9f6c7a]">
+                              <p className="text-sm font-black text-[#525252]">
                                 오늘 한 진도
                               </p>
 
@@ -1711,7 +1711,7 @@ export default function NewStudentRecordPage() {
                                       `${record.subject} 진도 선택`,
                                     )
                                   }
-                                  className="rounded-2xl bg-[#4a3c40] px-3 py-2 text-xs font-black text-white disabled:bg-[#cdbdc2]"
+                                  className="rounded-2xl bg-[#171717] px-3 py-2 text-xs font-black text-white disabled:bg-[#a3a3a3]"
                                   disabled={!record.subject.trim()}
                                 >
                                   진도 선택
@@ -1721,7 +1721,7 @@ export default function NewStudentRecordPage() {
                                   onClick={() =>
                                     hideSubjectSection(record.id, "progress")
                                   }
-                                  className="rounded-2xl border border-[#e8d4da] bg-white px-3 py-2 text-xs font-black text-[#8f6270]"
+                                  className="rounded-2xl border border-[#e5e5e5] bg-white px-3 py-2 text-xs font-black text-[#171717]"
                                 >
                                   닫기
                                 </button>
@@ -1729,11 +1729,11 @@ export default function NewStudentRecordPage() {
                             </div>
 
                             {tasksForSubject.length === 0 ? (
-                              <p className="rounded-2xl bg-[#fdf9fa] px-4 py-4 text-sm font-semibold text-[#9a838b]">
+                              <p className="rounded-2xl bg-[#f7f7f7] px-4 py-4 text-sm font-semibold text-[#525252]">
                                 이 과목에서 선택할 항목이 없어요.
                               </p>
                             ) : selectedProgressTasks.length === 0 ? (
-                              <p className="rounded-2xl border border-dashed border-[#ead9de] bg-[#fdf9fa] px-4 py-4 text-sm font-semibold text-[#9a838b]">
+                              <p className="rounded-2xl border border-dashed border-[#e5e5e5] bg-[#f7f7f7] px-4 py-4 text-sm font-semibold text-[#525252]">
                                 아직 선택한 진도가 없어요.
                               </p>
                             ) : (
@@ -1741,7 +1741,7 @@ export default function NewStudentRecordPage() {
                                 {selectedProgressTasks.map((task) => (
                                   <div
                                     key={task.id}
-                                    className="rounded-2xl border border-[#ead9de] bg-[#fdf9fa] px-4 py-3 text-sm font-bold text-[#3f3437]"
+                                    className="rounded-2xl border border-[#e5e5e5] bg-[#f7f7f7] px-4 py-3 text-sm font-bold text-[#171717]"
                                   >
                                     {taskLabel(task)}
                                   </div>
@@ -1752,9 +1752,9 @@ export default function NewStudentRecordPage() {
                         )}
 
                         {record.show_homework && (
-                          <div className="rounded-3xl border border-[#e8d4da] bg-white p-4">
+                          <div className="rounded-3xl border border-[#e5e5e5] bg-white p-4">
                             <div className="mb-3 flex items-center justify-between gap-3">
-                              <p className="text-sm font-black text-[#9f6c7a]">
+                              <p className="text-sm font-black text-[#525252]">
                                 오늘의 숙제
                               </p>
 
@@ -1768,7 +1768,7 @@ export default function NewStudentRecordPage() {
                                       `${record.subject} 숙제 선택`,
                                     )
                                   }
-                                  className="rounded-2xl bg-[#b98594] px-3 py-2 text-xs font-black text-white disabled:bg-[#d8b6c0]"
+                                  className="rounded-2xl bg-[#171717] px-3 py-2 text-xs font-black text-white disabled:bg-[#a3a3a3]"
                                   disabled={!record.subject.trim()}
                                 >
                                   숙제 선택
@@ -1778,7 +1778,7 @@ export default function NewStudentRecordPage() {
                                   onClick={() =>
                                     hideSubjectSection(record.id, "homework")
                                   }
-                                  className="rounded-2xl border border-[#e8d4da] bg-white px-3 py-2 text-xs font-black text-[#8f6270]"
+                                  className="rounded-2xl border border-[#e5e5e5] bg-white px-3 py-2 text-xs font-black text-[#171717]"
                                 >
                                   닫기
                                 </button>
@@ -1787,7 +1787,7 @@ export default function NewStudentRecordPage() {
 
                             {selectedHomeworkTasks.length === 0 &&
                             manualHomeworkLines.length === 0 ? (
-                              <p className="rounded-2xl border border-dashed border-[#ead9de] bg-[#fdf9fa] px-4 py-4 text-sm font-semibold text-[#9a838b]">
+                              <p className="rounded-2xl border border-dashed border-[#e5e5e5] bg-[#f7f7f7] px-4 py-4 text-sm font-semibold text-[#525252]">
                                 시험범위표에서 고르거나 아래에 직접 입력해줘.
                               </p>
                             ) : (
@@ -1795,7 +1795,7 @@ export default function NewStudentRecordPage() {
                                 {selectedHomeworkTasks.map((task) => (
                                   <div
                                     key={task.id}
-                                    className="rounded-2xl border border-[#ead9de] bg-[#fdf9fa] px-4 py-3 text-sm font-bold text-[#3f3437]"
+                                    className="rounded-2xl border border-[#e5e5e5] bg-[#f7f7f7] px-4 py-3 text-sm font-bold text-[#171717]"
                                   >
                                     {taskLabel(task)}
                                   </div>
@@ -1803,7 +1803,7 @@ export default function NewStudentRecordPage() {
                                 {manualHomeworkLines.map((line, index) => (
                                   <div
                                     key={`${record.id}-manual-homework-${index}`}
-                                    className="rounded-2xl border border-[#ead9de] bg-[#fffafb] px-4 py-3 text-sm font-bold text-[#3f3437]"
+                                    className="rounded-2xl border border-[#e5e5e5] bg-[#f5f5f5] px-4 py-3 text-sm font-bold text-[#171717]"
                                   >
                                     {line}
                                   </div>
@@ -1811,10 +1811,10 @@ export default function NewStudentRecordPage() {
                               </div>
                             )}
 
-                            <div className="mt-3 rounded-2xl border border-[#ead9de] bg-[#fdf9fa] p-3">
-                              <label className="mb-2 block text-xs font-black text-[#8f6270]">
+                            <div className="mt-3 rounded-2xl border border-[#e5e5e5] bg-[#f7f7f7] p-3">
+                              <label className="mb-2 block text-xs font-black text-[#171717]">
                                 시험범위표 외 기타 숙제{" "}
-                                <span className="font-bold text-[#b98594]">
+                                <span className="font-bold text-[#171717]">
                                   (한 줄에 하나씩 여러 개 가능)
                                 </span>
                               </label>
@@ -1828,16 +1828,16 @@ export default function NewStudentRecordPage() {
                                 }
                                 rows={3}
                                 placeholder="예: 프린트 3쪽 풀기\n단어 1~30번 암기"
-                                className="w-full resize-none rounded-2xl border border-[#e8d4da] bg-white px-3 py-2 text-sm outline-none"
+                                className="w-full resize-none rounded-2xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm outline-none"
                               />
                             </div>
                           </div>
                         )}
 
                         {record.show_plan && (
-                          <div className="rounded-3xl border border-[#d8c8f0] bg-white p-4">
+                          <div className="rounded-3xl border border-[#d4d4d4] bg-white p-4">
                             <div className="mb-3 flex items-center justify-between gap-3">
-                              <p className="text-sm font-black text-[#6d55a8]">
+                              <p className="text-sm font-black text-[#404040]">
                                 다음 수업 계획
                               </p>
 
@@ -1851,7 +1851,7 @@ export default function NewStudentRecordPage() {
                                       `${record.subject} 다음 수업 계획 선택`,
                                     )
                                   }
-                                  className="rounded-2xl bg-[#6d55a8] px-3 py-2 text-xs font-black text-white disabled:bg-[#cfc2e8]"
+                                  className="rounded-2xl bg-[#404040] px-3 py-2 text-xs font-black text-white disabled:bg-[#cfc2e8]"
                                   disabled={!record.subject.trim()}
                                 >
                                   계획 선택
@@ -1861,7 +1861,7 @@ export default function NewStudentRecordPage() {
                                   onClick={() =>
                                     hideSubjectSection(record.id, "plan")
                                   }
-                                  className="rounded-2xl border border-[#d8c8f0] bg-white px-3 py-2 text-xs font-black text-[#6d55a8]"
+                                  className="rounded-2xl border border-[#d4d4d4] bg-white px-3 py-2 text-xs font-black text-[#404040]"
                                 >
                                   닫기
                                 </button>
@@ -1869,7 +1869,7 @@ export default function NewStudentRecordPage() {
                             </div>
 
                             {selectedPlanTasks.length === 0 ? (
-                              <p className="rounded-2xl border border-dashed border-[#d8c8f0] bg-[#f8f5ff] px-4 py-4 text-sm font-semibold text-[#9a838b]">
+                              <p className="rounded-2xl border border-dashed border-[#d4d4d4] bg-[#f7f7f7] px-4 py-4 text-sm font-semibold text-[#525252]">
                                 아직 선택한 다음 수업 계획이 없어요.
                               </p>
                             ) : (
@@ -1877,7 +1877,7 @@ export default function NewStudentRecordPage() {
                                 {selectedPlanTasks.map((task) => (
                                   <div
                                     key={task.id}
-                                    className="rounded-2xl border border-[#d8c8f0] bg-[#f8f5ff] px-4 py-3 text-sm font-bold text-[#3f3437]"
+                                    className="rounded-2xl border border-[#d4d4d4] bg-[#f7f7f7] px-4 py-3 text-sm font-bold text-[#171717]"
                                   >
                                     {taskLabel(task)}
                                   </div>
@@ -1894,13 +1894,13 @@ export default function NewStudentRecordPage() {
             </div>
           </div>
 
-          <div className="mt-8 rounded-[2rem] border border-[#ead9de] bg-[#fdf9fa] p-5">
+          <div className="mt-8 rounded-[2rem] border border-[#e5e5e5] bg-[#f7f7f7] p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-black text-[#3f3437]">
+                <h2 className="text-xl font-black text-[#171717]">
                   수업 내용 / 메모
                 </h2>
-                <p className="mt-1 text-sm font-semibold text-[#8b767c]">
+                <p className="mt-1 text-sm font-semibold text-[#525252]">
                   필요한 것만 추가하면 입력 박스가 열려요.
                 </p>
               </div>
@@ -1910,7 +1910,7 @@ export default function NewStudentRecordPage() {
                   <button
                     type="button"
                     onClick={() => setShowContentBox(true)}
-                    className="rounded-full bg-[#b98594] px-4 py-2 text-xs font-black text-white"
+                    className="rounded-full bg-[#171717] px-4 py-2 text-xs font-black text-white"
                   >
                     + 수업 내용 추가
                   </button>
@@ -1919,7 +1919,7 @@ export default function NewStudentRecordPage() {
                   <button
                     type="button"
                     onClick={() => setShowMemoBox(true)}
-                    className="rounded-full border border-[#ead9de] bg-white px-4 py-2 text-xs font-black text-[#8f6270]"
+                    className="rounded-full border border-[#e5e5e5] bg-white px-4 py-2 text-xs font-black text-[#171717]"
                   >
                     + 메모 추가
                   </button>
@@ -1931,7 +1931,7 @@ export default function NewStudentRecordPage() {
               {showContentBox && (
                 <div>
                   <div className="mb-2 flex items-center justify-between">
-                    <label className="block text-sm font-bold text-[#6f5a61]">
+                    <label className="block text-sm font-bold text-[#5c5751]">
                       수업 내용
                     </label>
                     <button
@@ -1940,7 +1940,7 @@ export default function NewStudentRecordPage() {
                         setShowContentBox(false);
                         setContent("");
                       }}
-                      className="rounded-full border border-[#ead9de] bg-white px-3 py-1 text-[11px] font-black text-[#8f6270]"
+                      className="rounded-full border border-[#e5e5e5] bg-white px-3 py-1 text-[11px] font-black text-[#171717]"
                     >
                       닫기
                     </button>
@@ -1951,7 +1951,7 @@ export default function NewStudentRecordPage() {
                     onChange={(e) => setContent(e.target.value)}
                     rows={5}
                     placeholder="예: 오늘 전체적으로 다룬 내용, 학생 반응, 보충 설명한 부분"
-                    className="w-full resize-none rounded-3xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
+                    className="w-full resize-none rounded-3xl border border-[#e5e5e5] bg-white px-4 py-3 outline-none"
                   />
                 </div>
               )}
@@ -1959,7 +1959,7 @@ export default function NewStudentRecordPage() {
               {showMemoBox && (
                 <div>
                   <div className="mb-2 flex items-center justify-between">
-                    <label className="block text-sm font-bold text-[#6f5a61]">
+                    <label className="block text-sm font-bold text-[#5c5751]">
                       메모
                     </label>
                     <button
@@ -1968,7 +1968,7 @@ export default function NewStudentRecordPage() {
                         setShowMemoBox(false);
                         setMemo("");
                       }}
-                      className="rounded-full border border-[#ead9de] bg-white px-3 py-1 text-[11px] font-black text-[#8f6270]"
+                      className="rounded-full border border-[#e5e5e5] bg-white px-3 py-1 text-[11px] font-black text-[#171717]"
                     >
                       닫기
                     </button>
@@ -1979,13 +1979,13 @@ export default function NewStudentRecordPage() {
                     onChange={(e) => setMemo(e.target.value)}
                     rows={5}
                     placeholder="예: 집중도 좋음 / 다음 수업에서 다시 확인 필요 / 학부모님께 전달할 내용"
-                    className="w-full resize-none rounded-3xl border border-[#e8d4da] bg-white px-4 py-3 outline-none"
+                    className="w-full resize-none rounded-3xl border border-[#e5e5e5] bg-white px-4 py-3 outline-none"
                   />
                 </div>
               )}
 
               {!showContentBox && !showMemoBox && (
-                <div className="rounded-3xl border border-dashed border-[#ead9de] bg-white px-5 py-5 text-sm font-semibold text-[#9a838b] lg:col-span-2">
+                <div className="rounded-3xl border border-dashed border-[#e5e5e5] bg-white px-5 py-5 text-sm font-semibold text-[#525252] lg:col-span-2">
                   수업 내용이나 메모가 필요하면 오른쪽 버튼으로 추가해줘.
                 </div>
               )}
@@ -1996,7 +1996,7 @@ export default function NewStudentRecordPage() {
             type="button"
             onClick={saveRecord}
             disabled={loading}
-            className="mt-7 w-full rounded-3xl bg-[#b98594] px-4 py-4 text-center text-sm font-black text-white shadow-sm disabled:bg-[#d8b6c0]"
+            className="mt-7 w-full rounded-3xl bg-[#171717] px-4 py-4 text-center text-sm font-black text-white shadow-sm disabled:bg-[#a3a3a3]"
           >
             {loading ? "저장 중..." : "기록 저장하기"}
           </button>
@@ -2006,17 +2006,17 @@ export default function NewStudentRecordPage() {
       {pickerState && pickerRecord && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4 py-6">
           <div className="max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white shadow-xl">
-            <div className="flex items-start justify-between gap-4 border-b border-[#ead9de] bg-[#fbf7f8] px-6 py-5">
+            <div className="flex items-start justify-between gap-4 border-b border-[#e5e5e5] bg-[#ffffff] px-6 py-5">
               <div>
-                <p className="text-sm font-black text-[#a87583]">
+                <p className="text-sm font-black text-[#525252]">
                   {pickerState.title}
                 </p>
 
-                <h2 className="mt-1 text-2xl font-black text-[#3f3437]">
+                <h2 className="mt-1 text-2xl font-black text-[#171717]">
                   시험범위표에서 선택하기
                 </h2>
 
-                <p className="mt-2 text-sm text-[#8b767c]">
+                <p className="mt-2 text-sm text-[#525252]">
                   {pickerStatusHelpText(pickerState.field)} 여러 개 선택 후 선택
                   완료를 눌러줘.
                 </p>
@@ -2025,7 +2025,7 @@ export default function NewStudentRecordPage() {
               <button
                 type="button"
                 onClick={closeTaskPicker}
-                className="rounded-2xl border border-[#e8d4da] bg-white px-4 py-2 text-sm font-black text-[#8f6270]"
+                className="rounded-2xl border border-[#e5e5e5] bg-white px-4 py-2 text-sm font-black text-[#171717]"
               >
                 닫기
               </button>
@@ -2033,7 +2033,7 @@ export default function NewStudentRecordPage() {
 
             <div className="max-h-[62vh] overflow-auto p-6">
               {pickerRows.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-[#ead9de] bg-[#fdf9fa] px-5 py-8 text-center text-sm font-bold text-[#9a838b]">
+                <div className="rounded-3xl border border-dashed border-[#e5e5e5] bg-[#f7f7f7] px-5 py-8 text-center text-sm font-bold text-[#525252]">
                   이 과목의 시험범위 항목이 없어요.
                 </div>
               ) : (
@@ -2057,14 +2057,14 @@ export default function NewStudentRecordPage() {
                     return (
                       <div
                         key={`${pickerSubject}-${materialNameKey}`}
-                        className="overflow-x-auto rounded-3xl border border-[#ead9de] bg-white"
+                        className="overflow-x-auto rounded-3xl border border-[#e5e5e5] bg-white"
                       >
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#ead9de] bg-[#fff1f5] px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e5e5e5] bg-[#f7f7f7] px-4 py-3">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#d93675]">
+                            <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#171717]">
                               {materialDisplayName}
                             </span>
-                            <span className="text-xs font-bold text-[#9a838b]">
+                            <span className="text-xs font-bold text-[#525252]">
                               시험범위 진도표와 같은 형태로 보여요
                             </span>
                           </div>
@@ -2072,14 +2072,14 @@ export default function NewStudentRecordPage() {
 
                         <table className="w-full min-w-[760px] border-collapse bg-white text-sm">
                           <thead>
-                            <tr className="border-b border-[#ead9de] bg-[#fffafb]">
-                              <th className="w-[170px] px-3 py-3 text-left text-xs font-black text-[#8f6270]">
+                            <tr className="border-b border-[#e5e5e5] bg-[#f5f5f5]">
+                              <th className="w-[170px] px-3 py-3 text-left text-xs font-black text-[#171717]">
                                 범위
                               </th>
                               {taskNames.map((taskName) => (
                                 <th
                                   key={taskName}
-                                  className="min-w-[108px] px-2 py-3 text-center text-xs font-black text-[#8f6270]"
+                                  className="min-w-[108px] px-2 py-3 text-center text-xs font-black text-[#171717]"
                                 >
                                   {taskName}
                                 </th>
@@ -2098,22 +2098,22 @@ export default function NewStudentRecordPage() {
                               return (
                                 <tr
                                   key={row.id}
-                                  className="border-b border-[#ead9de] last:border-b-0"
+                                  className="border-b border-[#e5e5e5] last:border-b-0"
                                 >
                                   <td className="w-[170px] px-3 py-3 align-top">
                                     <div className="min-w-0">
                                       <div className="flex flex-wrap items-center gap-1.5">
-                                        <span className="rounded-full bg-[#ffe4ef] px-2.5 py-1 text-xs font-black text-[#d93675]">
+                                        <span className="rounded-full bg-[#e5e5e5] px-2.5 py-1 text-xs font-black text-[#171717]">
                                           {currentMajorUnit}
                                         </span>
                                         {showSubUnit && (
-                                          <span className="rounded-full bg-[#fff7fa] px-2.5 py-1 text-[11px] font-bold text-[#b06b82]">
+                                          <span className="rounded-full bg-[#ffffff] px-2.5 py-1 text-[11px] font-bold text-[#525252]">
                                             {row.unit_name}
                                           </span>
                                         )}
                                       </div>
                                       {row.memo && (
-                                        <p className="mt-1.5 text-xs font-semibold text-[#8b767c]">
+                                        <p className="mt-1.5 text-xs font-semibold text-[#525252]">
                                           {row.memo}
                                         </p>
                                       )}
@@ -2137,7 +2137,7 @@ export default function NewStudentRecordPage() {
                                       draftSelectedIds.includes(taskId);
                                     const statusClass =
                                       STATUS_STYLES[normalizedStatus] ||
-                                      "border-[#ead9de] bg-[#fdf9fa] text-[#9a838b]";
+                                      "border-[#e5e5e5] bg-[#f7f7f7] text-[#525252]";
 
                                     return (
                                       <td
@@ -2156,7 +2156,7 @@ export default function NewStudentRecordPage() {
                                             }
                                             className={`min-w-[94px] rounded-xl border px-2 py-2 text-center text-xs font-black outline-none transition ${statusClass} ${
                                               selected
-                                                ? "ring-2 ring-[#e86f9d] ring-offset-2"
+                                                ? "ring-2 ring-[#171717] ring-offset-2"
                                                 : "hover:-translate-y-0.5"
                                             }`}
                                           >
@@ -2186,8 +2186,8 @@ export default function NewStudentRecordPage() {
               )}
 
               {pickerState.field === "homework_item_ids" && pickerRecord && (
-                <div className="mt-5 rounded-3xl border border-[#ead9de] bg-[#fffafb] p-4">
-                  <label className="mb-2 block text-sm font-black text-[#8f6270]">
+                <div className="mt-5 rounded-3xl border border-[#e5e5e5] bg-[#f5f5f5] p-4">
+                  <label className="mb-2 block text-sm font-black text-[#171717]">
                     시험범위표 외 기타 숙제
                   </label>
                   <textarea
@@ -2197,14 +2197,14 @@ export default function NewStudentRecordPage() {
                     }
                     rows={3}
                     placeholder="예: 프린트 3쪽 풀기\n단어 1~30번 암기"
-                    className="w-full resize-none rounded-2xl border border-[#e8d4da] bg-white px-4 py-3 text-sm outline-none"
+                    className="w-full resize-none rounded-2xl border border-[#e5e5e5] bg-white px-4 py-3 text-sm outline-none"
                   />
                 </div>
               )}
             </div>
 
-            <div className="flex flex-col gap-3 border-t border-[#ead9de] bg-[#fbf7f8] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm font-bold text-[#8b767c]">
+            <div className="flex flex-col gap-3 border-t border-[#e5e5e5] bg-[#ffffff] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm font-bold text-[#525252]">
                 선택한 항목 {draftSelectedIds.length}개
               </p>
 
@@ -2212,7 +2212,7 @@ export default function NewStudentRecordPage() {
                 <button
                   type="button"
                   onClick={closeTaskPicker}
-                  className="rounded-2xl border border-[#e8d4da] bg-white px-5 py-3 text-sm font-black text-[#8f6270]"
+                  className="rounded-2xl border border-[#e5e5e5] bg-white px-5 py-3 text-sm font-black text-[#171717]"
                 >
                   취소
                 </button>
@@ -2220,7 +2220,7 @@ export default function NewStudentRecordPage() {
                 <button
                   type="button"
                   onClick={confirmTaskPicker}
-                  className="rounded-2xl bg-[#4a3c40] px-5 py-3 text-sm font-black text-white"
+                  className="rounded-2xl bg-[#171717] px-5 py-3 text-sm font-black text-white"
                 >
                   선택 완료
                 </button>
