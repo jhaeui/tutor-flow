@@ -60,12 +60,12 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_CLASS: Record<string, string> = {
   not_started: "bg-white text-[#171717] border-[#e5e5e5]",
-  in_progress: "bg-[#fff7d9] text-[#8a6420] border-[#ead58d]",
-  done: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
+  in_progress: "bg-[#ffedd5] text-[#c2410c] border-[#fb923c]",
+  done: "bg-[#dcfce7] text-[#166534] border-[#22c55e]",
   review: "bg-[#eef4ff] text-[#404040] border-[#c9d8f5]",
   homework: "bg-[#eee8df] text-[#171717] border-[#C8BAC6]",
   paused: "bg-[#f1f1f1] text-[#777] border-[#d8d8d8]",
-  planned: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
+  planned: "bg-[#f3e8ff] text-[#7e22ce] border-[#c084fc]",
 };
 
 const TASK_ORDER_META_KEY = "__task_order";

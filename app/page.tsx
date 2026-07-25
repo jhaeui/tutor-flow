@@ -1,6 +1,6 @@
 ﻿import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import CloseOnSubmitForm from "@/components/CloseOnSubmitForm";
 
 type Student = {
@@ -383,24 +383,48 @@ function makeCalendarDaysMonday(year: number, month: number) {
   const startBlankCount = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
   const daysInMonth = lastDay.getDate();
 
-  const cells: Array<{ dateText: string | null; day: number | null }> = [];
+  const cells: Array<{
+    dateText: string;
+    day: number;
+    isCurrentMonth: boolean;
+  }> = [];
 
   for (let i = 0; i < startBlankCount; i++) {
-    cells.push({ dateText: null, day: null });
+    const date = new Date(year, month - 1, 1 - startBlankCount + i);
+    cells.push({
+      dateText: toDateText(date),
+      day: date.getDate(),
+      isCurrentMonth: false,
+    });
   }
 
   for (let day = 1; day <= daysInMonth; day++) {
     cells.push({
       dateText: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
       day,
+      isCurrentMonth: true,
     });
   }
 
   while (cells.length % 7 !== 0) {
-    cells.push({ dateText: null, day: null });
+    const offset = cells.length - startBlankCount - daysInMonth + 1;
+    const date = new Date(year, month, offset);
+    cells.push({
+      dateText: toDateText(date),
+      day: date.getDate(),
+      isCurrentMonth: false,
+    });
   }
 
   return cells;
+}
+
+function getCalendarGridRange(year: number, month: number) {
+  const days = makeCalendarDaysMonday(year, month);
+  return {
+    startDate: days[0].dateText,
+    endDate: days[days.length - 1].dateText,
+  };
 }
 
 function getStudentColor(studentId: string, students: Student[]) {
@@ -568,13 +592,13 @@ function makeStudentEventLessonItems(
       date: event.event_date,
       dayLabel: getDayLabel(event.event_date),
       startTime: normalizeTime(event.event_time),
-      endTime: "",
+      endTime: getLessonEndTimeFromMemo(event.memo),
       title: `${getStudentName(event.student_id, students)} ${event.event_type || "수업"}`,
       eventType: (event.event_type || "수업") as
         | "수업"
         | "보강수업"
         | "추가수업",
-      memo: event.memo,
+      memo: stripLessonEndTimeMarker(event.memo),
       color: getStudentColor(event.student_id, students),
       eventSourceType: event.source_type,
       originalLessonTimeId: event.original_lesson_time_id || event.source_id || null,
@@ -740,6 +764,7 @@ function groupMonthlyEvents(events: MonthlyEvent[]) {
 }
 
 const RANGE_END_MARKER = "[end_date:";
+const LESSON_END_TIME_MARKER = "[end_time:";
 
 function stripRangeEndMarker(memo?: string | null) {
   return String(memo || "").replace(/\s*\[end_date:\d{4}-\d{2}-\d{2}\]\s*/g, " ").trim();
@@ -753,6 +778,21 @@ function memoWithRangeEnd(memo: string, startDate: string, endDate: string) {
   const cleanMemo = stripRangeEndMarker(memo);
   if (!endDate || endDate <= startDate) return cleanMemo || null;
   return `${cleanMemo ? `${cleanMemo} ` : ""}${RANGE_END_MARKER}${endDate}]`;
+}
+
+function stripLessonEndTimeMarker(memo?: string | null) {
+  return String(memo || "").replace(/\s*\[end_time:\d{2}:\d{2}\]\s*/g, " ").trim();
+}
+
+function getLessonEndTimeFromMemo(memo?: string | null) {
+  return String(memo || "").match(/\[end_time:(\d{2}:\d{2})\]/)?.[1] || "";
+}
+
+function memoWithLessonEndTime(memo: string, endTime: string) {
+  const cleanMemo = stripLessonEndTimeMarker(memo);
+  const cleanEndTime = normalizeTime(endTime);
+  if (!cleanEndTime) return cleanMemo || null;
+  return `${cleanMemo ? `${cleanMemo} ` : ""}${LESSON_END_TIME_MARKER}${cleanEndTime}]`;
 }
 
 function expandMonthlyEventRange(event: MonthlyEvent, monthStart: string, monthEnd: string) {
@@ -873,6 +913,7 @@ function makeMonthlyEvents(
 }
 
 export default async function DashboardPage({ searchParams }: PageProps) {
+  const supabase = await createSupabaseServerClient();
   const today = getKstToday();
   const rawSearchParams = searchParams ? await searchParams : {};
   const mobileTab = ["schedule"].includes(rawSearchParams.tab || "")
@@ -887,29 +928,37 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   );
   const lessonMonthParam = monthParamFromInfo(lessonScheduleMonthInfo);
   const calendarMonthParam = monthParamFromInfo(calendarMonthInfo);
+  const lessonScheduleCalendarRange = getCalendarGridRange(
+    lessonScheduleMonthInfo.year,
+    lessonScheduleMonthInfo.month,
+  );
+  const monthlyCalendarRange = getCalendarGridRange(
+    calendarMonthInfo.year,
+    calendarMonthInfo.month,
+  );
   const lessonRecordFetchStart =
-    currentMonthInfo.startDate < lessonScheduleMonthInfo.startDate
+    currentMonthInfo.startDate < lessonScheduleCalendarRange.startDate
       ? currentMonthInfo.startDate
-      : lessonScheduleMonthInfo.startDate;
+      : lessonScheduleCalendarRange.startDate;
   const lessonRecordFetchEnd =
-    currentMonthInfo.endDate > lessonScheduleMonthInfo.endDate
+    currentMonthInfo.endDate > lessonScheduleCalendarRange.endDate
       ? currentMonthInfo.endDate
-      : lessonScheduleMonthInfo.endDate;
+      : lessonScheduleCalendarRange.endDate;
   const { weekStart, weekEnd } = getWeekStartEnd(today);
   const weekDates = makeWeekDates(weekStart);
   const scheduleFetchStart = minDateText(
     weekStart,
-    lessonScheduleMonthInfo.startDate,
+    lessonScheduleCalendarRange.startDate,
   );
   const scheduleFetchEnd = maxDateText(
     weekEnd,
-    lessonScheduleMonthInfo.endDate,
+    lessonScheduleCalendarRange.endDate,
   );
   const eventFetchStart = minDateText(
     scheduleFetchStart,
-    calendarMonthInfo.startDate,
+    monthlyCalendarRange.startDate,
   );
-  const eventFetchEnd = maxDateText(scheduleFetchEnd, calendarMonthInfo.endDate);
+  const eventFetchEnd = maxDateText(scheduleFetchEnd, monthlyCalendarRange.endDate);
 
   const [
     studentsResult,
@@ -1088,8 +1137,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const scheduleByDate = groupByDate(weekScheduleItems);
 
   const lessonMonthDates = makeDateRange(
-    lessonScheduleMonthInfo.startDate,
-    lessonScheduleMonthInfo.endDate,
+    lessonScheduleCalendarRange.startDate,
+    lessonScheduleCalendarRange.endDate,
   );
   const fixedMonthItems = makeFixedLessonItems(
     lessonTimes,
@@ -1100,20 +1149,20 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const makeupMonthItems = makeMakeupItems(
     makeupLessons,
     students,
-    lessonScheduleMonthInfo.startDate,
-    lessonScheduleMonthInfo.endDate,
+    lessonScheduleCalendarRange.startDate,
+    lessonScheduleCalendarRange.endDate,
   );
   const eventMonthItems = makeStudentEventLessonItems(
     studentEvents,
     students,
-    lessonScheduleMonthInfo.startDate,
-    lessonScheduleMonthInfo.endDate,
+    lessonScheduleCalendarRange.startDate,
+    lessonScheduleCalendarRange.endDate,
   );
   const recordMonthItems = makeLessonRecordItems(
     lessonRecords,
     students,
-    lessonScheduleMonthInfo.startDate,
-    lessonScheduleMonthInfo.endDate,
+    lessonScheduleCalendarRange.startDate,
+    lessonScheduleCalendarRange.endDate,
     [...fixedMonthItems, ...makeupMonthItems, ...eventMonthItems],
     makeupLessons,
   );
@@ -1130,8 +1179,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     personalEvents,
     settlements,
     students,
-    calendarMonthInfo.startDate,
-    calendarMonthInfo.endDate,
+    monthlyCalendarRange.startDate,
+    monthlyCalendarRange.endDate,
   );
   const monthlyEventsByDate = groupMonthlyEvents(monthlyEvents);
   const lessonScheduleCalendarDays = makeCalendarDaysMonday(
@@ -1146,13 +1195,15 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function updatePerformanceMemo(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const taskId = String(formData.get("task_id") || "");
     const studentId = String(formData.get("student_id") || "");
     const memo = String(formData.get("memo") || "").trim();
 
     if (!taskId) return;
 
-    const { error } = await supabase
+    const { error } = await actionSupabase
       .from("student_performance_tasks")
       .update({ memo: memo || null })
       .eq("id", taskId);
@@ -1166,12 +1217,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function completePerformanceTask(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const taskId = String(formData.get("task_id") || "");
     const studentId = String(formData.get("student_id") || "");
 
     if (!taskId) return;
 
-    const { error } = await supabase
+    const { error } = await actionSupabase
       .from("student_performance_tasks")
       .update({ status: "done" })
       .eq("id", taskId);
@@ -1185,6 +1238,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function addDashboardPerformanceTask(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const studentId = String(formData.get("student_id") || "").trim();
     const subject = String(formData.get("subject") || "").trim();
     const title = String(formData.get("title") || "").trim();
@@ -1196,7 +1251,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       throw new Error("학생, 과목, 수행 내용은 꼭 필요해.");
     }
 
-    const { data: task, error } = await supabase
+    const { data: task, error } = await actionSupabase
       .from("student_performance_tasks")
       .insert({
         student_id: studentId,
@@ -1213,7 +1268,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     if (error) throw new Error(error.message);
 
     if (task?.id && dueDate) {
-      const { error: eventError } = await supabase.from("student_events").insert({
+      const { error: eventError } = await actionSupabase.from("student_events").insert({
         student_id: studentId,
         event_date: dueDate,
         event_time: dueTime || null,
@@ -1235,6 +1290,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function updateDashboardPerformanceTask(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const taskId = String(formData.get("task_id") || "").trim();
     const studentId = String(formData.get("student_id") || "").trim();
     const subject = String(formData.get("subject") || "").trim();
@@ -1246,7 +1303,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
     if (!taskId || !studentId || !subject || !title) return;
 
-    const { error } = await supabase
+    const { error } = await actionSupabase
       .from("student_performance_tasks")
       .update({
         subject,
@@ -1261,7 +1318,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
     if (error) throw new Error(error.message);
 
-    const { data: existingEvent, error: eventFetchError } = await supabase
+    const { data: existingEvent, error: eventFetchError } = await actionSupabase
       .from("student_events")
       .select("id")
       .eq("student_id", studentId)
@@ -1285,11 +1342,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         source_id: taskId,
       };
       const { error: eventError } = existingEvent?.id
-        ? await supabase.from("student_events").update(payload).eq("id", existingEvent.id)
-        : await supabase.from("student_events").insert(payload);
+        ? await actionSupabase.from("student_events").update(payload).eq("id", existingEvent.id)
+        : await actionSupabase.from("student_events").insert(payload);
       if (eventError) throw new Error(eventError.message);
     } else if (existingEvent?.id) {
-      const { error: deleteEventError } = await supabase
+      const { error: deleteEventError } = await actionSupabase
         .from("student_events")
         .delete()
         .eq("id", existingEvent.id);
@@ -1303,12 +1360,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function deleteDashboardPerformanceTask(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const taskId = String(formData.get("task_id") || "").trim();
     const studentId = String(formData.get("student_id") || "").trim();
 
     if (!taskId || !studentId) return;
 
-    const { error } = await supabase
+    const { error } = await actionSupabase
       .from("student_performance_tasks")
       .delete()
       .eq("id", taskId)
@@ -1316,7 +1375,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
     if (error) throw new Error(error.message);
 
-    const { error: eventError } = await supabase
+    const { error: eventError } = await actionSupabase
       .from("student_events")
       .delete()
       .eq("student_id", studentId)
@@ -1331,6 +1390,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   async function updateLessonSchedule(formData: FormData) {
     "use server";
+
+    const actionSupabase = await createSupabaseServerClient();
 
     const sourceType = String(formData.get("source_type") || "");
     const sourceId = String(formData.get("source_id") || "");
@@ -1348,7 +1409,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
       if (!studentId || !originalDate) return;
 
-      await supabase
+      await actionSupabase
         .from("student_events")
         .delete()
         .eq("student_id", studentId)
@@ -1356,7 +1417,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         .eq("original_lesson_time_id", sourceId)
         .eq("original_event_date", originalDate);
 
-      const { data: existingOverride, error: fetchError } = await supabase
+      const { data: existingOverride, error: fetchError } = await actionSupabase
         .from("student_events")
         .select("id")
         .eq("student_id", studentId)
@@ -1374,7 +1435,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         subject: "수업",
         title: "수업",
         event_type: "수업",
-        memo: memo || null,
+        memo: memoWithLessonEndTime(memo, endTime),
         is_auto: false,
         source_type: "fixed_lesson_override",
         source_id: sourceId,
@@ -1383,17 +1444,17 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       };
 
       const { error } = existingOverride?.id
-        ? await supabase
+        ? await actionSupabase
             .from("student_events")
             .update(payload)
             .eq("id", existingOverride.id)
-        : await supabase.from("student_events").insert(payload);
+        : await actionSupabase.from("student_events").insert(payload);
 
       if (error) throw new Error(error.message);
     }
 
     if (sourceType === "makeup_lesson") {
-      const { error } = await supabase
+      const { error } = await actionSupabase
         .from("makeup_lessons")
         .update({
           makeup_date: date || null,
@@ -1406,12 +1467,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
 
     if (sourceType === "student_event") {
-      const { error } = await supabase
+      const { error } = await actionSupabase
         .from("student_events")
         .update({
           event_date: date,
           event_time: startTime || null,
-          memo: memo || null,
+          memo: memoWithLessonEndTime(memo, endTime),
         })
         .eq("id", sourceId);
 
@@ -1419,7 +1480,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
 
     if (sourceType === "lesson_record") {
-      const { error } = await supabase
+      const { error } = await actionSupabase
         .from("lesson_records")
         .update({
           lesson_date: date,
@@ -1438,6 +1499,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function deleteLessonSchedule(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const sourceType = String(formData.get("source_type") || "");
     const sourceId = String(formData.get("source_id") || "");
     const studentId = String(formData.get("student_id") || "");
@@ -1450,7 +1513,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
       if (!studentId || !originalDate) return;
 
-      await supabase
+      await actionSupabase
         .from("student_events")
         .delete()
         .eq("student_id", studentId)
@@ -1458,7 +1521,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         .eq("original_lesson_time_id", sourceId)
         .eq("original_event_date", originalDate);
 
-      const { error } = await supabase.from("student_events").insert({
+      const { error } = await actionSupabase.from("student_events").insert({
         student_id: studentId,
         event_date: originalDate,
         event_time: originalTime || null,
@@ -1477,7 +1540,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
 
     if (sourceType === "makeup_lesson") {
-      const { error } = await supabase
+      const { error } = await actionSupabase
         .from("makeup_lessons")
         .delete()
         .eq("id", sourceId);
@@ -1485,7 +1548,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
 
     if (sourceType === "student_event") {
-      const { data: targetEvent, error: fetchEventError } = await supabase
+      const { data: targetEvent, error: fetchEventError } = await actionSupabase
         .from("student_events")
         .select("*")
         .eq("id", sourceId)
@@ -1493,7 +1556,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
       if (fetchEventError) throw new Error(fetchEventError.message);
 
-      const { error } = await supabase
+      const { error } = await actionSupabase
         .from("student_events")
         .delete()
         .eq("id", sourceId);
@@ -1504,7 +1567,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         targetEvent.original_lesson_time_id &&
         targetEvent.original_event_date
       ) {
-        const { error: cancelError } = await supabase.from("student_events").insert({
+        const { error: cancelError } = await actionSupabase.from("student_events").insert({
           student_id: targetEvent.student_id,
           event_date: targetEvent.original_event_date,
           event_time: targetEvent.event_time || null,
@@ -1523,7 +1586,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
 
     if (sourceType === "lesson_record") {
-      const { error } = await supabase
+      const { error } = await actionSupabase
         .from("lesson_records")
         .delete()
         .eq("id", sourceId);
@@ -1537,9 +1600,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function addDashboardLessonEvent(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const studentId = String(formData.get("student_id") || "").trim();
     const eventDate = String(formData.get("event_date") || "").trim();
     const eventTime = String(formData.get("event_time") || "").trim();
+    const endTime = String(formData.get("end_time") || "").trim();
     const eventType = String(formData.get("event_type") || "수업").trim();
     const memo = String(formData.get("memo") || "").trim();
 
@@ -1551,14 +1617,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       ? eventType
       : "수업";
 
-    const { error } = await supabase.from("student_events").insert({
+    const { error } = await actionSupabase.from("student_events").insert({
       student_id: studentId,
       event_date: eventDate,
       event_time: eventTime || null,
       subject: "수업",
       title: finalType,
       event_type: finalType,
-      memo: memo || null,
+      memo: memoWithLessonEndTime(memo, endTime),
       is_auto: false,
       source_type: "manual",
       source_id: null,
@@ -1573,6 +1639,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function addPersonalEvent(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const eventDate = String(formData.get("event_date") || "").trim();
     const endDate = String(formData.get("end_date") || "").trim();
     const eventTime = String(formData.get("event_time") || "").trim();
@@ -1584,7 +1652,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       throw new Error("날짜와 일정 이름은 꼭 입력해야 해.");
     }
 
-    const { error } = await supabase.from("personal_events").insert({
+    const { error } = await actionSupabase.from("personal_events").insert({
       event_date: eventDate,
       event_time: eventTime || null,
       end_time: endTime || null,
@@ -1600,6 +1668,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function addPersonalDayEvent(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const eventDate =
       String(formData.get("event_date") || "").trim() || getKstToday();
     const startTime = String(formData.get("start_time") || "").trim();
@@ -1611,7 +1681,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       throw new Error("시작시간, 끝시간, 일정 이름은 꼭 입력해야 해.");
     }
 
-    const { error } = await supabase.from("personal_day_events").insert({
+    const { error } = await actionSupabase.from("personal_day_events").insert({
       event_date: eventDate,
       start_time: startTime,
       end_time: endTime,
@@ -1627,6 +1697,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function updatePersonalDayEvent(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const eventId = String(formData.get("event_id") || "");
     const eventDate =
       String(formData.get("event_date") || "").trim() || getKstToday();
@@ -1637,7 +1709,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
     if (!eventId || !startTime || !endTime || !title) return;
 
-    const { error } = await supabase
+    const { error } = await actionSupabase
       .from("personal_day_events")
       .update({
         event_date: eventDate,
@@ -1656,10 +1728,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function deletePersonalDayEvent(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const eventId = String(formData.get("event_id") || "");
     if (!eventId) return;
 
-    const { error } = await supabase
+    const { error } = await actionSupabase
       .from("personal_day_events")
       .delete()
       .eq("id", eventId);
@@ -1672,12 +1746,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function addPersonalTodo(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const dueDate = String(formData.get("due_date") || "").trim();
     const title = String(formData.get("title") || "").trim();
 
     if (!title) throw new Error("할일 이름은 꼭 입력해야 해.");
 
-    const { error } = await supabase.from("personal_todos").insert({
+    const { error } = await actionSupabase.from("personal_todos").insert({
       due_date: dueDate || null,
       title,
       is_done: false,
@@ -1691,11 +1767,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function togglePersonalTodo(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const todoId = String(formData.get("todo_id") || "");
     const isDone = String(formData.get("is_done") || "") === "true";
     if (!todoId) return;
 
-    const { error } = await supabase
+    const { error } = await actionSupabase
       .from("personal_todos")
       .update({ is_done: !isDone })
       .eq("id", todoId);
@@ -1708,10 +1786,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function deletePersonalTodo(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const todoId = String(formData.get("todo_id") || "");
     if (!todoId) return;
 
-    const { error } = await supabase
+    const { error } = await actionSupabase
       .from("personal_todos")
       .delete()
       .eq("id", todoId);
@@ -1723,6 +1803,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   async function updateMonthlyEvent(formData: FormData) {
     "use server";
+
+    const actionSupabase = await createSupabaseServerClient();
 
     const sourceType = String(formData.get("source_type") || "");
     const sourceId = String(formData.get("source_id") || "");
@@ -1737,7 +1819,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     if (!sourceType || !sourceId || !eventDate) return;
 
     if (sourceType === "student_event") {
-      const { error } = await supabase
+      const { error } = await actionSupabase
         .from("student_events")
         .update({
           event_date: eventDate,
@@ -1750,7 +1832,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
 
     if (sourceType === "feedback") {
-      const { error } = await supabase
+      const { error } = await actionSupabase
         .from("settlements")
         .update({ feedback_date: eventDate })
         .eq("id", sourceId);
@@ -1758,7 +1840,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
 
     if (sourceType === "personal_event") {
-      const { error } = await supabase
+      const { error } = await actionSupabase
         .from("personal_events")
         .update({
           event_date: eventDate,
@@ -1778,6 +1860,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   async function deleteMonthlyEvent(formData: FormData) {
     "use server";
 
+    const actionSupabase = await createSupabaseServerClient();
+
     const sourceType = String(formData.get("source_type") || "");
     const sourceId = String(formData.get("source_id") || "");
     const studentId = String(formData.get("student_id") || "");
@@ -1785,7 +1869,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     if (!sourceType || !sourceId) return;
 
     if (sourceType === "student_event") {
-      const { error } = await supabase
+      const { error } = await actionSupabase
         .from("student_events")
         .delete()
         .eq("id", sourceId);
@@ -1793,7 +1877,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
 
     if (sourceType === "feedback") {
-      const { error } = await supabase
+      const { error } = await actionSupabase
         .from("settlements")
         .update({ feedback_date: null })
         .eq("id", sourceId);
@@ -1801,7 +1885,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
 
     if (sourceType === "personal_event") {
-      const { error } = await supabase
+      const { error } = await actionSupabase
         .from("personal_events")
         .delete()
         .eq("id", sourceId);
@@ -2032,7 +2116,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 {lessonScheduleCalendarDays.map((cell, index) => {
                   const dayItems = cell.dateText ? monthScheduleByDate[cell.dateText] || [] : [];
                   return (
-                    <div key={`mobile-lesson-month-${cell.dateText || index}`} className={`min-h-[66px] rounded-[10px] border p-1 ${cell.dateText === today ? "border-[#171717] bg-[#171717] text-white" : cell.dateText ? "border-[#e5e5e5] bg-white text-[#171717]" : "border-transparent bg-transparent"}`}>
+                    <div key={`mobile-lesson-month-${cell.dateText || index}`} className={`min-h-[66px] rounded-[10px] border p-1 ${cell.dateText === today ? "border-[#171717] bg-[#171717] text-white" : cell.isCurrentMonth ? "border-[#e5e5e5] bg-white text-[#171717]" : "border-[#e5e5e5] bg-[#f5f5f5] text-[#8a8a8a]"}`}>
                       {cell.dateText && (
                         <>
                           <div className="mb-1 flex items-center justify-between">
@@ -2096,6 +2180,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               <input type="date" name="event_date" defaultValue={today} className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
               <div className="grid grid-cols-2 gap-1">
                 <input name="event_time" placeholder="시작" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
+                <input name="end_time" placeholder="종료" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none" />
+              </div>
+              <div>
                 <select name="event_type" defaultValue="수업" className="rounded-lg border border-[#d4d4d4] bg-white px-2 py-1.5 text-[11px] outline-none">
                   {LESSON_EVENT_TYPES.map((type) => (
                     <option key={`mobile-lesson-type-${type}`} value={type}>
@@ -2130,7 +2217,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 {monthlyCalendarDays.map((cell, index) => {
                   const dayEvents = cell.dateText ? (monthlyEventsByDate[cell.dateText] || []).filter((event) => event.sourceType !== "feedback") : [];
                   return (
-                    <div key={`mobile-month-${cell.dateText || index}`} className={`min-h-[66px] rounded-[10px] border p-1 ${cell.dateText === today ? "border-[#171717] bg-[#171717] text-white" : cell.dateText ? "border-[#e5e5e5] bg-white text-[#171717]" : "border-transparent bg-transparent"}`}>
+                    <div key={`mobile-month-${cell.dateText || index}`} className={`min-h-[66px] rounded-[10px] border p-1 ${cell.dateText === today ? "border-[#171717] bg-[#171717] text-white" : cell.isCurrentMonth ? "border-[#e5e5e5] bg-white text-[#171717]" : "border-[#e5e5e5] bg-[#f5f5f5] text-[#8a8a8a]"}`}>
                       {cell.dateText && (
                         <>
                           <div className="mb-1 flex items-center justify-between">
@@ -2842,7 +2929,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                       className={`min-h-[150px] border-r border-t border-[#e5e5e5] p-2 last:border-r-0 ${
                         cell.dateText === today
                           ? "bg-[#e5e5e5] ring-2 ring-inset ring-[#8d8177]"
-                          : cell.dateText
+                          : cell.isCurrentMonth
                             ? "bg-white"
                             : "bg-[#f5f5f5]"
                       }`}
@@ -2850,7 +2937,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                       {cell.dateText && (
                         <>
                           <div className="mb-2 flex items-center justify-between">
-                            <span className="text-xs font-black text-[#171717]">
+                            <span className={`text-xs font-black ${cell.isCurrentMonth ? "text-[#171717]" : "text-[#8a8a8a]"}`}>
                               {cell.day}
                             </span>
                             {lessonItems.length > 0 && (
@@ -2984,7 +3071,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               />
               <input
                 name="event_time"
-                placeholder="시간"
+                placeholder="시작"
+                className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-bold outline-none"
+              />
+              <input
+                name="end_time"
+                placeholder="종료"
                 className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-bold outline-none"
               />
               <select
@@ -3001,7 +3093,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               <input
                 name="memo"
                 placeholder="메모"
-                className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-bold outline-none md:col-span-2"
+                className="rounded-xl border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-bold outline-none"
               />
               <button className="rounded-xl bg-[#171717] px-3 py-2 text-sm font-black text-white md:col-span-6">
                 수업 추가
@@ -3083,7 +3175,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                       className={`min-h-[132px] border-r border-t border-[#e5e5e5] p-2 last:border-r-0 ${
                         cell.dateText === today
                           ? "bg-[#e5e5e5] ring-2 ring-inset ring-[#8d8177]"
-                          : cell.dateText
+                          : cell.isCurrentMonth
                             ? "bg-white"
                             : "bg-[#f5f5f5]"
                       }`}
@@ -3091,7 +3183,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                       {cell.dateText && (
                         <>
                           <div className="mb-2 flex items-center justify-between">
-                            <span className="text-xs font-black text-[#171717]">
+                            <span className={`text-xs font-black ${cell.isCurrentMonth ? "text-[#171717]" : "text-[#8a8a8a]"}`}>
                               {cell.day}
                             </span>
                             {visibleDateEvents.length > 0 && (

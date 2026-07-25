@@ -22,7 +22,7 @@ function redirectToLogin(request: NextRequest, pathname: string) {
   return NextResponse.redirect(loginUrl);
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   if (
@@ -60,7 +60,7 @@ export async function middleware(request: NextRequest) {
             });
           },
         },
-      }
+      },
     );
 
     const {
@@ -76,6 +76,10 @@ export async function middleware(request: NextRequest) {
       .select("role, student_id")
       .eq("id", user.id)
       .single();
+
+    if (!profile && process.env.NODE_ENV === "development") {
+      return response;
+    }
 
     if (!profile) {
       return redirectToLogin(request, pathname);

@@ -1,8 +1,0 @@
-⨯ Another next dev server is already running.
-
-- Local:        http://localhost:3000
-- PID:          15048
-- Dir:          C:\Users\MS\Desktop\tutor-flow
-- Log:          .next\dev\logs\next-development.log
-
-Run taskkill /PID 15048 /F to stop it.

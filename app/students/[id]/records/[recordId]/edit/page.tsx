@@ -74,6 +74,20 @@ type PickerState = {
   title: string;
 } | null;
 
+const SAVE_TIMEOUT_MS = 15000;
+const SAVE_TIMEOUT_MESSAGE = "저장 응답이 지연되고 있어. 잠시 후 다시 시도해줘.";
+
+function withSaveTimeout<T>(request: PromiseLike<T>): Promise<T> {
+  return Promise.race([
+    Promise.resolve(request),
+    new Promise<never>((_, reject) => {
+      window.setTimeout(() => {
+        reject(new Error(SAVE_TIMEOUT_MESSAGE));
+      }, SAVE_TIMEOUT_MS);
+    }),
+  ]);
+}
+
 const SUBJECTS: BasicSubjectName[] = [
   "국어",
   "영어",
@@ -142,12 +156,12 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_STYLES: Record<string, string> = {
   not_started: "bg-white text-[#525252] border-[#e5e5e5]",
-  in_progress: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
-  done: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
+  in_progress: "bg-[#ffedd5] text-[#c2410c] border-[#fb923c]",
+  done: "bg-[#dcfce7] text-[#166534] border-[#22c55e]",
   review: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
   homework: "bg-[#f5f5f5] text-[#171717] border-[#d4d4d4]",
   paused: "bg-[#f1f1f1] text-[#777] border-[#d8d8d8]",
-  planned: "bg-[#f7f7f7] text-[#404040] border-[#d4d4d4]",
+  planned: "bg-[#f3e8ff] text-[#7e22ce] border-[#c084fc]",
 };
 
 const subjectBadgeStyle: Record<string, string> = {
@@ -1461,33 +1475,37 @@ export default function EditStudentRecordPage() {
         ? 0
         : Math.max(0, totalMinutes - regularExtraMinutes);
 
-      const { error } = await supabase
-        .from("lesson_records")
-        .update({
-          lesson_date: lessonDate,
-          start_time: startTime,
-          end_time: endTime,
-          content: content.trim() || "",
-          memo: memo.trim() || null,
-          subject_records: cleanedSubjectRecords,
-          checked_homework_items: checkedHomeworkItems,
-          duration_text: durationText,
-          total_minutes: totalMinutes,
-          is_extra: isExtra,
-          has_regular_extra: hasRegularExtra,
-          extra_minutes: regularExtraMinutes,
-          billable_minutes: calculatedBillableMinutes,
-        })
-        .eq("id", recordId)
-        .eq("student_id", studentId);
+      const { error } = await withSaveTimeout(
+        supabase
+          .from("lesson_records")
+          .update({
+            lesson_date: lessonDate,
+            start_time: startTime,
+            end_time: endTime,
+            content: content.trim() || "",
+            memo: memo.trim() || null,
+            subject_records: cleanedSubjectRecords,
+            checked_homework_items: checkedHomeworkItems,
+            duration_text: durationText,
+            total_minutes: totalMinutes,
+            is_extra: isExtra,
+            has_regular_extra: hasRegularExtra,
+            extra_minutes: regularExtraMinutes,
+            billable_minutes: calculatedBillableMinutes,
+          })
+          .eq("id", recordId)
+          .eq("student_id", studentId),
+      );
 
       if (error) {
         throw new Error(error.message);
       }
 
-      await rebuildExamProgressStatusesAfterSave(
-        cleanedSubjectRecords,
-        checkedHomeworkItems,
+      await withSaveTimeout(
+        rebuildExamProgressStatusesAfterSave(
+          cleanedSubjectRecords,
+          checkedHomeworkItems,
+        ),
       );
 
       router.push(`/students/${studentId}`);

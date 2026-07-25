@@ -302,6 +302,16 @@ type SettlementRow = {
   end_date: string;
 };
 
+type EditableSettlementRow = SettlementRow & {
+  lesson_hours?: number | null;
+  hourly_rate?: number | null;
+  payment_status?: string | null;
+  payment_type?: string | null;
+  payment_completed_date?: string | null;
+  feedback_note?: string | null;
+  total_fee_override?: number | null;
+};
+
 type LessonTime = {
   id: string;
   student_id: string;
@@ -502,12 +512,12 @@ const EXAM_STATUS_LABELS: Record<string, string> = {
 
 const EXAM_STATUS_STYLES: Record<string, string> = {
   not_started: "border-[#e5e5e5] bg-white text-[#171717]",
-  in_progress: "border-[#d4d4d4] bg-[#f7f7f7] text-[#404040]",
-  done: "border-[#d4d4d4] bg-[#f7f7f7] text-[#404040]",
+  in_progress: "border-[#fb923c] bg-[#ffedd5] text-[#c2410c]",
+  done: "border-[#22c55e] bg-[#dcfce7] text-[#166534]",
   review: "border-[#d4d4d4] bg-[#f7f7f7] text-[#404040]",
   homework: "border-[#d4d4d4] bg-[#f7f7f7] text-[#171717]",
   paused: "border-[#d8d8d8] bg-[#f1f1f1] text-[#777]",
-  planned: "border-[#d4d4d4] bg-[#f7f7f7] text-[#404040]",
+  planned: "border-[#c084fc] bg-[#f3e8ff] text-[#7e22ce]",
 };
 
 const EVENT_TYPE_STYLES: Record<string, string> = {
@@ -2456,7 +2466,7 @@ export default async function StudentDetailPage({
       event_date: settlement.feedback_date as string,
       event_time: null,
       subject: null,
-      title: `피드백일 - ${formatDueDate(settlement.feedback_date)}`,
+      title: `${Number(String(settlement.start_date).slice(5, 7))}월 피드백일 - ${formatDueDate(settlement.feedback_date)}`,
       event_type: "피드백",
       memo: `${settlement.start_date} ~ ${settlement.end_date}`,
       is_auto: true,
@@ -4221,15 +4231,57 @@ export default async function StudentDetailPage({
     }
 
     const existingById = new Map(
-      ((existingRows || []) as Array<SettlementRow & Record<string, any>>).map(
+      ((existingRows || []) as EditableSettlementRow[]).map(
         (row) => [row.id, row],
       ),
     );
 
-    for (const row of rows) {
-      const existing = row.settlementId
-        ? existingById.get(row.settlementId)
-        : null;
+    const { data: studentSettlementRows, error: studentSettlementsFetchError } =
+      await supabase.from("settlements").select("*").eq("student_id", id);
+
+    if (studentSettlementsFetchError) {
+      throw new Error(studentSettlementsFetchError.message);
+    }
+
+    const existingByExactRange = new Map(
+      ((studentSettlementRows || []) as EditableSettlementRow[]).map(
+        (row) => [`${row.start_date}:${row.end_date}`, row],
+      ),
+    );
+
+    const rowsToSave = rows
+      .map((row) => {
+        const existing =
+          (row.settlementId ? existingById.get(row.settlementId) : null) ||
+          existingByExactRange.get(`${row.startDate}:${row.endDate}`) ||
+          null;
+
+        if (!row.settlementId && existing?.id) {
+          row.settlementId = existing.id;
+          existingById.set(existing.id, existing);
+        }
+
+        return { row, existing };
+      })
+      .sort((a, b) => {
+        const aShrinks =
+          a.existing &&
+          a.row.startDate >= a.existing.start_date &&
+          a.row.endDate <= a.existing.end_date;
+        const bShrinks =
+          b.existing &&
+          b.row.startDate >= b.existing.start_date &&
+          b.row.endDate <= b.existing.end_date;
+
+        if (aShrinks !== bShrinks) return aShrinks ? -1 : 1;
+        return String(a.row.startDate).localeCompare(String(b.row.startDate));
+      });
+
+    for (const { row, existing } of rowsToSave) {
+      const rowExisting =
+        existing ||
+        (row.settlementId ? existingById.get(row.settlementId) : null) ||
+        null;
 
       const payload = {
         student_id: id,
@@ -4239,24 +4291,24 @@ export default async function StudentDetailPage({
         actual_lesson_count_override: row.actualCount,
         previous_carryover_count: row.makeupCount,
         lesson_hours: Number(
-          existing?.lesson_hours ||
+          rowExisting?.lesson_hours ||
             student.default_lesson_hours ||
             student.lesson_hours ||
             1,
         ),
-        hourly_rate: Number(existing?.hourly_rate || student.hourly_rate || 0),
+        hourly_rate: Number(rowExisting?.hourly_rate || student.hourly_rate || 0),
         feedback_date: row.feedbackDate || null,
-        feedback_done: Boolean(existing?.feedback_done),
+        feedback_done: Boolean(rowExisting?.feedback_done),
         payment_status: existing?.payment_status || "대기중",
         payment_type: existing?.payment_type || "선불",
-        payment_completed_date: existing?.payment_completed_date || null,
-        feedback_note: existing?.feedback_note || null,
-        total_fee_override: existing?.total_fee_override ?? null,
+        payment_completed_date: rowExisting?.payment_completed_date || null,
+        feedback_note: rowExisting?.feedback_note || null,
+        total_fee_override: rowExisting?.total_fee_override ?? null,
         updated_at: new Date().toISOString(),
       };
 
       const { error } =
-        row.settlementId && existing?.id
+        row.settlementId && rowExisting?.id
           ? await supabase
               .from("settlements")
               .update(payload)
@@ -5703,13 +5755,13 @@ export default async function StudentDetailPage({
                 확인할 수 있어요.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full border border-[#d4d4d4] bg-[#ffffff] px-3 py-1.5 text-xs font-black text-[#171717]">
+                <span className="hidden">
                   <span>{formatLessonMonthLabel(month)} 예상 수업</span>
                   <span className="text-[#171717]">
                     {expectedLessonCount || 0}회
                   </span>
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-[#e5e5e5] bg-white px-3 py-1.5 text-xs font-black text-[#171717]">
+                <span className="hidden">
                   <span>기준</span>
                   <span>
                     {settlementStartDate} ~ {settlementEndDate}
